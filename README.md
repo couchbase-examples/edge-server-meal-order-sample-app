@@ -1,1 +1,1 @@
-# edge-server-sko-demo
+# Couchbase Lite Server SKO Mobile Booth Demo
