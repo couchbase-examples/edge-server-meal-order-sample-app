@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
+import Navbar from './components/Navbar';
+import MealSelection from './components/MealSelection';
+import OrderSummary from './components/OrderSummary';
+import Cart from './components/Cart';
+import './index.css';
+
+const couchbaseTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#EA2328' // You can pull from your tailwind config or define here
+    },
+    secondary: {
+      main: '#00BCE4'
+    }
+  },
+  typography: {
+    fontFamily: ['Arial', 'sans-serif'].join(',')
+  }
+});
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <ThemeProvider theme={couchbaseTheme}>
+      <CssBaseline />
+      <div className="flex flex-col h-screen">
+        <Navbar />
+        {/* Main content area */}
+        <div className="flex flex-1">
+          <main className="flex-1 p-4 overflow-y-auto bg-gray-50">
+            <div className="flex items-center mb-4">
+              <MenuIcon style={{ marginRight: '8px' }} />
+              <h1 className="text-2xl font-bold">Meal Ordering</h1>
+            </div>
+            <MealSelection />
+          </main>
+          <aside className="w-72 p-4 bg-white border-l border-gray-200">
+            <Cart />
+          </aside>
+        </div>
+        <footer className="bg-gray-100 p-4">
+          <OrderSummary />
+        </footer>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
