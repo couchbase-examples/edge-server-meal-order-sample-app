@@ -1,11 +1,13 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+module.exports = {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "cb-red": "#EA2328",   // Primary Couchbase red
+        "cb-teal": "#00BCE4",  // Couchbase teal
+      },
+    },
   },
   plugins: [],
-}
+};
