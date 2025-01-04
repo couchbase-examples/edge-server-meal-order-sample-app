@@ -1,11 +1,11 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
 import Navbar from './components/Navbar';
 import MealSelection from './components/MealSelection';
 import OrderSummary from './components/OrderSummary';
 import Cart from './components/Cart';
 import './index.css';
+import LeftSideBar from './components/LeftSideBar';
 
 const couchbaseTheme = createTheme({
   palette: {
@@ -27,22 +27,27 @@ function App() {
       <CssBaseline />
       <div className="flex flex-col h-screen">
         <Navbar />
-        {/* Main content area */}
         <div className="flex flex-1">
-          <main className="flex-1 p-4 overflow-y-auto bg-gray-50">
-            <div className="flex items-center mb-4">
-              <MenuIcon style={{ marginRight: '8px' }} />
-              <h1 className="text-2xl font-bold">Meal Ordering</h1>
-            </div>
-            <MealSelection />
-          </main>
+          {/* Left Sidebar */}
+          <LeftSideBar />
+          {/* Main Content Area */}
+          <div className="flex flex-col flex-1" style={{ marginLeft: '20%' }}>
+            <main className="flex-1 p-4 overflow-y-auto bg-gray-50">
+              <div className="flex items-center mb-4">
+                <h1 className="text-2xl font-bold">Meal Ordering</h1>
+              </div>
+              <MealSelection />
+            </main>
+            {/* Footer */}
+            <footer className="bg-gray-100 p-4 border-t border-gray-200">
+              <OrderSummary />
+            </footer>
+          </div>
+          {/* Cart Section */}
           <aside className="w-72 p-4 bg-white border-l border-gray-200">
             <Cart />
           </aside>
         </div>
-        <footer className="bg-gray-100 p-4">
-          <OrderSummary />
-        </footer>
       </div>
     </ThemeProvider>
   );
