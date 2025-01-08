@@ -6,6 +6,7 @@ import OrderSummary from "./components/OrderSummary";
 import Cart from "./components/Cart";
 import "./index.css";
 import LeftSideBar from "./components/LeftSideBar";
+import BusinessMealPage from "./components/businessMealPage";
 
 const couchbaseTheme = createTheme({
 	palette: {
@@ -37,6 +38,7 @@ function App() {
 								<h1 className="text-2xl font-bold">Meal Ordering</h1>
 							</div>
 							<MealSelection />
+              <BusinessMealPage/>
 						</main>
 						{/* Footer */}
 						<footer className="bg-gray-100 p-4 border-t border-gray-200">

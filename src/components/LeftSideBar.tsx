@@ -50,7 +50,7 @@ export default function LeftSideBar() {
 					<ListItemButton
 						component="a"
 						href="#"
-						key="Food Order"
+						key="Food & Drinks"
 						sx={{
 							backgroundColor: "red", // Highlight color
 							"&:hover": {
@@ -63,7 +63,7 @@ export default function LeftSideBar() {
 							<FastfoodIcon sx={{ color: "white" }} />{" "}
 							{/* Icon with white color */}
 						</ListItemIcon>
-						<ListItemText primary="Food Order" />
+						<ListItemText primary="Food & Drinks" />
 					</ListItemButton>
 
 					<ListItemButton component="a" href="#" key={"More"}>
