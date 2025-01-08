@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
-import { fetchBusinessMeal, addMeal } from "../store/mealSlice";
+import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
-import { Card, CardContent, Typography, Button } from "@mui/material";
+import { Card, CardContent, Typography } from "@mui/material";
 
 function BusinessMealPage() {
 	const dispatch = useAppDispatch();
@@ -31,26 +31,25 @@ function BusinessMealPage() {
         }
       };
 
-	const handleAddToCart = (
+	const handleCardClick = (
 		meal: string,
 		price: number,
 		mealId: string,
 		inventoryCount: number
 	) => {
-		// Check if out of stock:
 		if (inventoryCount <= 0) {
 			alert("This meal is out of stock.");
 			return;
 		}
-
-		// If you allow only 1 meal of each:
-		//   1) You could check if it’s already in cart
-		//   2) If so, block or remove the old one, etc.
-
-		dispatch(addMeal({ name: meal, price, quantity: 1 }));
-
-		// Optionally you’d also dispatch updateBusinessInventory({ mealId, seatNumber }) here.
-		// ...
+		// If you only want to add once, check if it's already selected.
+		// If you want to toggle, you might also remove if it's already selected.
+		const isSelected = mealState.items.some((item) => item.name === meal);
+		if (!isSelected) {
+			// Dispatch addMeal only if not already in cart
+			dispatch(addMeal({ name: meal, price, quantity: 1 }));
+		} else {
+			dispatch(removeMeal(meal));
+		}
 	};
 
 	const { breakfast, lunch, dinner, dessert, beverage, alcohol } =
@@ -65,7 +64,8 @@ function BusinessMealPage() {
 				</Typography>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
 					{items.map((item) => {
-						let matchedInventory: { startingInventory: number } | undefined = undefined as { startingInventory: number } | undefined;
+						let matchedInventory: { startingInventory: number } | undefined =
+							undefined as { startingInventory: number } | undefined;
 						const invArray = (inventory as any)[categoryName] || [];
 
 						invArray.forEach((invObj: any) => {
@@ -75,8 +75,26 @@ function BusinessMealPage() {
 						});
 
 						const available = matchedInventory?.startingInventory ?? 0;
+
+						// Check if this meal is in the cart (already selected)
+						const isSelected = mealState.items.some(
+							(cartItem) => cartItem.name === item.meal
+						);
+
 						return (
-							<Card key={item.mealid} className="shadow-md">
+							<Card
+								key={item.mealid}
+								// Conditionally apply extra styles if selected
+								className={`shadow-md cursor-pointer transition-transform transform hover:scale-105 
+              ${
+								isSelected
+									? "border-4 border-blue-500" // or your highlight color
+									: "border border-gray-200"
+							}`}
+								onClick={() =>
+									handleCardClick(item.meal, 12, item.mealid, available)
+								}
+							>
 								<CardContent>
 									<Typography variant="h6">{item.meal}</Typography>
 									<Typography variant="body2" className="text-gray-600">
@@ -91,25 +109,15 @@ function BusinessMealPage() {
 										className="w-full h-48 object-cover mt-2"
 										onError={(e) => {
 											const target = e.target as HTMLImageElement;
-											target.src = getImagePath("default"); // fallback
+											target.src = getImagePath("default"); // fallback for missing images
 										}}
 									/>
-									<Button
-										variant="contained"
-										color="primary"
-										className="mt-2"
-										onClick={() =>
-											handleAddToCart(
-												item.meal,
-												/* example price */ 12,
-												item.mealid,
-												available
-											)
-										}
-										disabled={available <= 0}
-									>
-										Order
-									</Button>
+									{/* Optional visual cue if selected */}
+									{isSelected && (
+										<div className="mt-2 text-green-600 font-semibold">
+											Selected!
+										</div>
+									)}
 								</CardContent>
 							</Card>
 						);
