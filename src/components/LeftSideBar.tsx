@@ -29,7 +29,7 @@ export default function LeftSideBar() {
 			variant="permanent"
 			sx={{
 				"& .MuiDrawer-paper": {
-					width: "20%", // Sidebar width
+					width: "16.6%", // Sidebar width
 					height: "calc(100vh - 45px)", // Full screen height minus navbar height
 					marginTop: "45px", // Adjust for navbar
 					backgroundColor: "background.default", // Theme background
