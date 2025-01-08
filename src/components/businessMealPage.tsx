@@ -134,10 +134,6 @@ function BusinessMealPage() {
 
 	return (
 		<div className="p-4">
-			<Typography variant="h4" className="mb-4">
-				Business Meal Menu
-			</Typography>
-
 			{renderMealCategory("breakfast", breakfast)}
 			{renderMealCategory("lunch", lunch)}
 			{renderMealCategory("dinner", dinner)}

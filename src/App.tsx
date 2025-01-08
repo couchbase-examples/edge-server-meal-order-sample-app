@@ -40,7 +40,7 @@ function App() {
           {/* Center Content + Footer (stacked vertically) */}
           <div className="flex flex-col flex-1 overflow-y-auto bg-gray-50">
             <main className="flex-1 p-4">
-              <h1 className="text-2xl font-bold mb-4">Meal Ordering</h1>
+              <h1 className="text-2xl font-bold mb-4">Menu</h1>
               <BusinessMealPage />
             </main>
 
