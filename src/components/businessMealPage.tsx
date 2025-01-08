@@ -37,15 +37,13 @@ function BusinessMealPage() {
 		mealId: string,
 		inventoryCount: number
 	) => {
+		// If out of stock, do nothing
 		if (inventoryCount <= 0) {
-			alert("This meal is out of stock.");
 			return;
 		}
-		// If you only want to add once, check if it's already selected.
-		// If you want to toggle, you might also remove if it's already selected.
+		// If you only want to add once, check if it's already selected => toggle
 		const isSelected = mealState.items.some((item) => item.name === meal);
 		if (!isSelected) {
-			// Dispatch addMeal only if not already in cart
 			dispatch(addMeal({ name: meal, price, quantity: 1 }));
 		} else {
 			dispatch(removeMeal(meal));
@@ -64,8 +62,7 @@ function BusinessMealPage() {
 				</Typography>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
 					{items.map((item) => {
-						let matchedInventory: { startingInventory: number } | undefined =
-							undefined as { startingInventory: number } | undefined;
+						let matchedInventory: { startingInventory: number } | undefined;
 						const invArray = (inventory as any)[categoryName] || [];
 
 						invArray.forEach((invObj: any) => {
@@ -75,22 +72,26 @@ function BusinessMealPage() {
 						});
 
 						const available = matchedInventory?.startingInventory ?? 0;
-
-						// Check if this meal is in the cart (already selected)
 						const isSelected = mealState.items.some(
 							(cartItem) => cartItem.name === item.meal
 						);
 
+						// Generate dynamic CSS classes based on availability and selection
+						const isOutOfStock = available <= 0;
+						const cardClass = `
+          shadow-md transition-transform transform
+          ${
+						isOutOfStock
+							? "cursor-not-allowed grayscale hover:scale-100"
+							: "cursor-pointer hover:scale-105"
+					}
+          ${isSelected ? "border-4 border-blue-500" : "border border-gray-200"}
+        `;
+
 						return (
 							<Card
 								key={item.mealid}
-								// Conditionally apply extra styles if selected
-								className={`shadow-md cursor-pointer transition-transform transform hover:scale-105 
-              ${
-								isSelected
-									? "border-4 border-blue-500" // or your highlight color
-									: "border border-gray-200"
-							}`}
+								className={cardClass}
 								onClick={() =>
 									handleCardClick(item.meal, 12, item.mealid, available)
 								}
@@ -109,13 +110,17 @@ function BusinessMealPage() {
 										className="w-full h-48 object-cover mt-2"
 										onError={(e) => {
 											const target = e.target as HTMLImageElement;
-											target.src = getImagePath("default"); // fallback for missing images
+											target.src = getImagePath("default");
 										}}
 									/>
-									{/* Optional visual cue if selected */}
-									{isSelected && (
+									{isSelected && !isOutOfStock && (
 										<div className="mt-2 text-green-600 font-semibold">
 											Selected!
+										</div>
+									)}
+									{isOutOfStock && (
+										<div className="mt-2 text-red-500 font-semibold">
+											Out of Stock
 										</div>
 									)}
 								</CardContent>
