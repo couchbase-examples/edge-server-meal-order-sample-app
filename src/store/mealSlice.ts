@@ -1,53 +1,70 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+// src/features/mealSlice.ts
 
-export interface Meal {
-  name: string;
-  price: number;
-  quantity: number;
-}
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { BusinessMealDoc } from "../types";
 
 interface MealState {
-  items: Meal[];
-  totalPrice: number;
+  data: BusinessMealDoc | null;
+  status: "idle" | "loading" | "succeeded" | "failed";
+  error: string | null;
 }
 
 const initialState: MealState = {
-  items: [],
-  totalPrice: 0
+  data: null,
+  status: "idle",
+  error: null,
 };
 
-const mealSlice = createSlice({
-  name: 'meal',
-  initialState,
-  reducers: {
-    addMeal: (state, action: PayloadAction<Meal>) => {
-      const existingIndex = state.items.findIndex(
-        item => item.name === action.payload.name
+export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
+  "meal/fetchBusinessMeal",
+  async () => {
+    try {
+      const response = await fetch(
+        "/american234.AmericanAirlines.AA234/businessmeal",
+        {
+          headers: {
+            "Authorization": "Basic " + btoa("seatuser:password"),
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
       );
-      if (existingIndex >= 0) {
-        // Increase the quantity
-        state.items[existingIndex].quantity += action.payload.quantity;
-      } else {
-        state.items.push(action.payload);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to fetch businessmeal data');
       }
-      state.totalPrice += action.payload.price * action.payload.quantity;
-    },
-    removeMeal: (state, action: PayloadAction<string>) => {
-      const existingIndex = state.items.findIndex(
-        item => item.name === action.payload
-      );
-      if (existingIndex >= 0) {
-        const item = state.items[existingIndex];
-        state.totalPrice -= item.price * item.quantity;
-        state.items.splice(existingIndex, 1);
+
+      return await response.json() as BusinessMealDoc;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch businessmeal data: ${error.message}`);
       }
-    },
-    resetOrder: state => {
-      state.items = [];
-      state.totalPrice = 0;
+      throw new Error('An unknown error occurred');
     }
   }
+);
+
+const mealSlice = createSlice({
+  name: "meal",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBusinessMeal.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchBusinessMeal.fulfilled, (state, action: PayloadAction<BusinessMealDoc>) => {
+        state.status = "succeeded";
+        state.data = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchBusinessMeal.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message ?? "Something went wrong";
+      });
+  },
 });
 
-export const { addMeal, removeMeal, resetOrder } = mealSlice.actions;
 export default mealSlice.reducer;
