@@ -1,7 +1,6 @@
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 import Navbar from "./components/Navbar";
-import MealSelection from "./components/MealSelection";
 import OrderSummary from "./components/OrderSummary";
 import Cart from "./components/Cart";
 import "./index.css";
@@ -37,7 +36,6 @@ function App() {
 							<div className="flex items-center mb-4">
 								<h1 className="text-2xl font-bold">Meal Ordering</h1>
 							</div>
-							<MealSelection />
               <BusinessMealPage/>
 						</main>
 						{/* Footer */}
