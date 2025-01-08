@@ -1,3 +1,4 @@
+// OrderSummaryDialog.tsx
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store";
@@ -12,7 +13,13 @@ import {
 	Divider,
 } from "@mui/material";
 
-const OrderSummaryDialog: React.FC = () => {
+interface OrderSummaryDialogProps {
+	onOrderSuccess: () => void;
+}
+
+const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
+	onOrderSuccess,
+}) => {
 	const dispatch = useDispatch();
 	const { items, totalPrice } = useSelector((state: RootState) => state.meal);
 
@@ -31,8 +38,8 @@ const OrderSummaryDialog: React.FC = () => {
 		// Here you could also call an API endpoint for final order submission
 		dispatch(resetOrder());
 		setOpen(false);
-
-		// TODO: Optionally show a success Snackbar or alert: "Your order is on the way!"
+		// Trigger the success callback
+		onOrderSuccess();
 	};
 
 	const handleReset = () => {
@@ -46,14 +53,19 @@ const OrderSummaryDialog: React.FC = () => {
 
 	return (
 		<div className="my-4 flex justify-end">
-            <div>
-                <Button variant="contained" color="primary" onClick={handleOpen} style={{ marginRight: '8px' }}>
-                    Confirm Order
-                </Button>
-                <Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
-                    Reset
-                </Button>
-            </div>
+			<div>
+				<Button
+					variant="contained"
+					color="primary"
+					onClick={handleOpen}
+					style={{ marginRight: "8px" }}
+				>
+					Confirm Order
+				</Button>
+				<Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
+					Reset
+				</Button>
+			</div>
 
 			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
 				<DialogTitle>Order Summary</DialogTitle>
