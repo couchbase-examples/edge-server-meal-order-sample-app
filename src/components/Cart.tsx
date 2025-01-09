@@ -22,9 +22,9 @@ const Cart: React.FC = () => {
             <li key={index} className="flex justify-between items-center p-2 border-b">
               <div>
                 <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-gray-500">
+                {/* <p className="text-sm text-gray-500">
                   {item.quantity} x ${item.price}
-                </p>
+                </p> */}
               </div>
               <button
                 className="text-red-600 hover:underline"
