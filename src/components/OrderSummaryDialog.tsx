@@ -10,7 +10,6 @@ import {
 	DialogContent,
 	DialogTitle,
 	Typography,
-	Divider,
 } from "@mui/material";
 
 interface OrderSummaryDialogProps {
@@ -21,7 +20,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
 }) => {
 	const dispatch = useDispatch();
-	const { items, totalPrice } = useSelector((state: RootState) => state.meal);
+	const { items } = useSelector((state: RootState) => state.meal);
 
 	// Controls whether the dialog is open
 	const [open, setOpen] = useState(false);
@@ -72,13 +71,12 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				<DialogContent>
 					{items.map((item, idx) => (
 						<Typography key={idx}>
-							{item.quantity} × {item.name} – ${item.price.toFixed(2)}
+							{item.name}
 						</Typography>
 					))}
-					<Divider sx={{ my: 2 }} />
-					<Typography fontWeight="bold" variant="body1">
+					{/* <Typography fontWeight="bold" variant="body1">
 						Total: ${totalPrice.toFixed(2)}
-					</Typography>
+					</Typography> */}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={handleClose} color="inherit">

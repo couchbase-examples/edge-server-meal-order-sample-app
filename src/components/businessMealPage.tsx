@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from "../store";
 import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
 import { Card, CardContent, Typography } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 function BusinessMealPage() {
 	const dispatch = useAppDispatch();
@@ -23,13 +24,13 @@ function BusinessMealPage() {
 		return <div>No data available</div>;
 	}
 
-    const getImagePath = (assetId: string) => {
-        try {
-          return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
-        } catch {
-          return new URL('../assets/images/default.png', import.meta.url).href;
-        }
-      };
+	const getImagePath = (assetId: string) => {
+		try {
+			return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
+		} catch {
+			return new URL(`../assets/images/default.png`, import.meta.url).href;
+		}
+	};
 
 	const handleCardClick = (
 		meal: string,
@@ -79,7 +80,7 @@ function BusinessMealPage() {
 						// Generate dynamic CSS classes based on availability and selection
 						const isOutOfStock = available <= 0;
 						const cardClass = `
-          shadow-md transition-transform transform
+          shadow-md transition-transform transform relative
           ${
 						isOutOfStock
 							? "cursor-not-allowed grayscale hover:scale-100"
@@ -96,6 +97,16 @@ function BusinessMealPage() {
 									handleCardClick(item.meal, 0, item.mealid, available)
 								}
 							>
+								{/* Checkmark Icon for Selected Items */}
+								{isSelected && !isOutOfStock && (
+									<div className="absolute top-2 right-2">
+										<CheckCircleIcon
+											fontSize="small"
+											className="text-green-500"
+										/>
+									</div>
+								)}
+
 								<CardContent>
 									<Typography variant="h6">{item.meal}</Typography>
 									<Typography variant="body2" className="text-gray-600">
@@ -113,11 +124,6 @@ function BusinessMealPage() {
 											target.src = getImagePath("default");
 										}}
 									/>
-									{isSelected && !isOutOfStock && (
-										<div className="mt-2 text-green-600 font-semibold">
-											Selected
-										</div>
-									)}
 									{isOutOfStock && (
 										<div className="mt-2 text-red-500 font-semibold">
 											Currently Unavailable
