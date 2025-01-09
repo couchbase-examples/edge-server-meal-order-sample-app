@@ -33,28 +33,29 @@ function BusinessMealPage() {
 	};
 
 	const handleCardClick = (
-		meal: string,
-		price: number,
+		mealName: string,
+		categoryName: string,
 		mealId: string,
 		inventoryCount: number
 	) => {
-		// If out of stock, do nothing
 		if (inventoryCount <= 0) {
 			return;
 		}
-		// If you only want to add once, check if it's already selected => toggle
-		const isSelected = mealState.items.some((item) => item.name === meal);
-		if (!isSelected) {
-			dispatch(addMeal({ name: meal, price, quantity: 1 }));
+		// If already selected, remove it; otherwise add it.
+		const isSelected = mealState.items.some((item) => item.name === mealName);
+		if (isSelected) {
+			dispatch(removeMeal(mealName));
 		} else {
-			dispatch(removeMeal(meal));
+			dispatch(addMeal({ name: mealName, category: categoryName }));
 		}
 	};
 
+	// From the data object
 	const { breakfast, lunch, dinner, dessert, beverage, alcohol } =
-		mealState.data!;
-	const inventory = inventoryState.data!;
+		mealState.data;
+	const inventory = inventoryState.data;
 
+	// A helper to render each category
 	const renderMealCategory = (categoryName: string, items: any[]) => {
 		return (
 			<div className="mb-4">
@@ -77,24 +78,33 @@ function BusinessMealPage() {
 							(cartItem) => cartItem.name === item.meal
 						);
 
-						// Generate dynamic CSS classes based on availability and selection
+						// Style classes:
 						const isOutOfStock = available <= 0;
 						const cardClass = `
-          shadow-md transition-transform transform relative
-          ${
-						isOutOfStock
-							? "cursor-not-allowed grayscale hover:scale-100"
-							: "cursor-pointer hover:scale-105"
-					}
-          ${isSelected ? "border-4 border-blue-500" : "border border-gray-200"}
-        `;
+              shadow-md transition-transform transform relative
+              ${
+								isOutOfStock
+									? "cursor-not-allowed grayscale hover:scale-100"
+									: "cursor-pointer hover:scale-105"
+							}
+              ${
+								isSelected
+									? "border-4 border-blue-500"
+									: "border border-gray-200"
+							}
+            `;
 
 						return (
 							<Card
 								key={item.mealid}
 								className={cardClass}
 								onClick={() =>
-									handleCardClick(item.meal, 0, item.mealid, available)
+									handleCardClick(
+										item.meal,
+										categoryName,
+										item.mealid,
+										available
+									)
 								}
 							>
 								{/* Checkmark Icon for Selected Items */}
@@ -111,9 +121,6 @@ function BusinessMealPage() {
 									<Typography variant="h6">{item.meal}</Typography>
 									<Typography variant="body2" className="text-gray-600">
 										{item.description}
-									</Typography>
-									<Typography variant="body2" color="secondary">
-										{/* Available: {available} */}
 									</Typography>
 									<img
 										src={getImagePath(item.assetid)}

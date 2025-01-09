@@ -1,4 +1,3 @@
-// OrderSummaryDialog.tsx
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store";
@@ -22,30 +21,23 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const dispatch = useDispatch();
 	const { items } = useSelector((state: RootState) => state.meal);
 
-	// Controls whether the dialog is open
 	const [open, setOpen] = useState(false);
 
 	const handleOpen = () => {
 		setOpen(true);
 	};
-
 	const handleClose = () => {
 		setOpen(false);
 	};
-
 	const handleConfirm = () => {
-		// Here you could also call an API endpoint for final order submission
 		dispatch(resetOrder());
 		setOpen(false);
-		// Trigger the success callback
 		onOrderSuccess();
 	};
-
 	const handleReset = () => {
 		dispatch(resetOrder());
 	};
 
-	// If no items in the cart, hide the "Confirm Order" button entirely
 	if (items.length === 0) {
 		return null;
 	}
@@ -70,13 +62,16 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
 					{items.map((item, idx) => (
-						<Typography key={idx}>
-							{item.name}
-						</Typography>
+						<div
+							key={idx}
+							style={{ display: "flex", justifyContent: "space-between" }}
+						>
+							<Typography>{item.name}</Typography>
+							<Typography className="text-sm text-gray-500">
+								{item.category}
+							</Typography>
+						</div>
 					))}
-					{/* <Typography fontWeight="bold" variant="body1">
-						Total: ${totalPrice.toFixed(2)}
-					</Typography> */}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={handleClose} color="inherit">
