@@ -93,7 +93,7 @@ function BusinessMealPage() {
 								key={item.mealid}
 								className={cardClass}
 								onClick={() =>
-									handleCardClick(item.meal, 12, item.mealid, available)
+									handleCardClick(item.meal, 0, item.mealid, available)
 								}
 							>
 								<CardContent>
@@ -102,7 +102,7 @@ function BusinessMealPage() {
 										{item.description}
 									</Typography>
 									<Typography variant="body2" color="secondary">
-										Available: {available}
+										{/* Available: {available} */}
 									</Typography>
 									<img
 										src={getImagePath(item.assetid)}
@@ -115,12 +115,12 @@ function BusinessMealPage() {
 									/>
 									{isSelected && !isOutOfStock && (
 										<div className="mt-2 text-green-600 font-semibold">
-											Selected!
+											Selected
 										</div>
 									)}
 									{isOutOfStock && (
 										<div className="mt-2 text-red-500 font-semibold">
-											Out of Stock
+											Currently Unavailable
 										</div>
 									)}
 								</CardContent>

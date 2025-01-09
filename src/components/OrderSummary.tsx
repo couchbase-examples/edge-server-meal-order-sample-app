@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "../store/store";
 import OrderSummaryDialog from "./OrderSummaryDialog";
 import { Snackbar, Alert, Slide } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
@@ -14,7 +12,7 @@ const SlideTransition = React.forwardRef(function SlideTransition(
 });
 
 const OrderSummary: React.FC = () => {
-	const { totalPrice } = useSelector((state: RootState) => state.meal);
+	// const { totalPrice } = useSelector((state: RootState) => state.meal);
 	const [snackbarOpen, setSnackbarOpen] = useState(false);
 
 	const handleSnackbarClose = (
@@ -29,11 +27,17 @@ const OrderSummary: React.FC = () => {
 
 	return (
 		<div className="flex items-center justify-between">
+			{/* Order Summary Section */}
 			<div>
-				<p className="text-lg font-semibold">Order Total:</p>
-				<p className="text-2xl font-bold">${totalPrice.toFixed(2)}</p>
+				{/* Uncomment and use this if you have a total price */}
+				{/* <p className="text-lg font-semibold">Order Total:</p>
+				<p className="text-2xl font-bold">${totalPrice.toFixed(2)}</p> */}
 			</div>
-			<OrderSummaryDialog onOrderSuccess={() => setSnackbarOpen(true)} />
+
+			{/* Buttons Section */}
+			<div className="flex items-center space-x-4 ml-auto">
+				<OrderSummaryDialog onOrderSuccess={() => setSnackbarOpen(true)} />
+			</div>
 
 			{/* Success Snackbar */}
 			<Snackbar
