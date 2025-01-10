@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../store";
+import { RootState, store } from "../store";
 import { resetOrder } from "../store/mealSlice";
+import { updateBusinessInventory } from "../store/inventorySlice";
 import {
 	Button,
 	Dialog,
 	DialogActions,
 	DialogContent,
-	DialogTitle
+	DialogTitle,
+	CircularProgress,
+	Alert,
 } from "@mui/material";
+import { getOrCreateSeatId } from "../utils/createSeatId";
 
 interface OrderSummaryDialogProps {
 	onOrderSuccess: () => void;
@@ -17,22 +21,50 @@ interface OrderSummaryDialogProps {
 const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
 }) => {
-	const dispatch = useDispatch();
+	const dispatch = useDispatch<typeof store.dispatch>();
 	const { items } = useSelector((state: RootState) => state.meal);
+	const { status, error } = useSelector((state: RootState) => state.inventory);
+    const seatUserId = getOrCreateSeatId();
 
 	const [open, setOpen] = useState(false);
 
 	const handleOpen = () => {
 		setOpen(true);
 	};
+
 	const handleClose = () => {
 		setOpen(false);
 	};
-	const handleConfirm = () => {
-		dispatch(resetOrder());
-		setOpen(false);
-		onOrderSuccess();
+
+	const handleConfirm = async () => {
+		try {
+			const formattedItems = items.map((item) => ({
+				id: item.mealId,
+				category: item.category,
+			}));
+
+			const resultAction = await dispatch(
+				updateBusinessInventory({
+					items: formattedItems,
+					seatUserId,
+				})
+			);
+			if (updateBusinessInventory.fulfilled.match(resultAction)) {
+				dispatch(resetOrder());
+				setOpen(false);
+				onOrderSuccess();
+			} else {
+				throw resultAction.payload || resultAction.error;
+			}
+
+			dispatch(resetOrder());
+			setOpen(false);
+			onOrderSuccess();
+		} catch (error) {
+			console.error("Failed to update inventory:", error);
+		}
 	};
+
 	const handleReset = () => {
 		dispatch(resetOrder());
 	};
@@ -60,6 +92,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
+					{error && <Alert severity="error">{error}</Alert>}
 					{items.map((item, idx) => (
 						<div
 							key={idx}
@@ -73,11 +106,20 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 					))}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={handleClose} color="inherit">
+					<Button
+						onClick={handleClose}
+						color="inherit"
+						disabled={status === "loading"}
+					>
 						Cancel
 					</Button>
-					<Button onClick={handleConfirm} variant="contained" color="primary">
-						Confirm
+					<Button
+						onClick={handleConfirm}
+						variant="contained"
+						color="primary"
+						disabled={status === "loading"}
+					>
+						{status === "loading" ? <CircularProgress size={24} /> : "Confirm"}
 					</Button>
 				</DialogActions>
 			</Dialog>

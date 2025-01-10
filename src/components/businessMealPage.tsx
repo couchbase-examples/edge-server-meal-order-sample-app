@@ -64,16 +64,27 @@ function BusinessMealPage() {
 				</Typography>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
 					{items.map((item) => {
-						let matchedInventory: { startingInventory: number } | undefined;
+						let matchedInventory: { 
+                            startingInventory: number;
+                            seatsOrdered: Record<string, number>;
+                        } = { 
+                            startingInventory: 0,
+                            seatsOrdered: {}
+                        };
 						const invArray = (inventory as any)[categoryName] || [];
-
 						invArray.forEach((invObj: any) => {
 							if (Object.keys(invObj)[0] === item.mealid) {
 								matchedInventory = invObj[item.mealid];
 							}
 						});
+						// Calculate number of orders
+						const orderedCount = Object.keys(
+							matchedInventory?.seatsOrdered || {}
+						).length;
 
-						const available = matchedInventory?.startingInventory ?? 0;
+						// Calculate available count
+						const available =
+							(matchedInventory?.startingInventory || 0) - orderedCount;
 						const isSelected = mealState.items.some(
 							(cartItem) => cartItem.name === item.meal
 						);
