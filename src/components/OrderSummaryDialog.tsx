@@ -51,7 +51,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 					onClick={handleOpen}
 					style={{ marginRight: "8px" }}
 				>
-					Confirm Order
+					Confirm Selection
 				</Button>
 				<Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
 					Reset
@@ -66,10 +66,10 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 							key={idx}
 							style={{ display: "flex", justifyContent: "space-between" }}
 						>
-							<Typography>{item.name}</Typography>
-							<Typography className="text-sm text-gray-500">
-								{item.category}
-							</Typography>
+							<div>
+								<p className="font-medium">{item.name}</p>
+								<p className="text-sm text-gray-500">{item.category}</p>
+							</div>
 						</div>
 					))}
 				</DialogContent>
