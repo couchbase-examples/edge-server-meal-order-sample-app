@@ -6,6 +6,7 @@ import Cart from "./components/Cart";
 import LeftSideBar from "./components/LeftSideBar";
 import "./index.css";
 import BusinessMealPage from "./components/businessMealPage";
+import { getOrCreateSeatId } from "./utils/createSeatId";
 
 const couchbaseTheme = createTheme({
   palette: {
@@ -18,6 +19,7 @@ const couchbaseTheme = createTheme({
 });
 
 function App() {
+  getOrCreateSeatId();
   return (
     <ThemeProvider theme={couchbaseTheme}>
       <CssBaseline />
