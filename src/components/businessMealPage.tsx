@@ -46,7 +46,7 @@ function BusinessMealPage() {
 		if (isSelected) {
 			dispatch(removeMeal(mealName));
 		} else {
-			dispatch(addMeal({ name: mealName, category: categoryName }));
+			dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
 		}
 	};
 
@@ -89,7 +89,7 @@ function BusinessMealPage() {
 							}
               ${
 								isSelected
-									? "border-4 border-blue-500"
+									? "border-4 border-green-500"
 									: "border border-gray-200"
 							}
             `;

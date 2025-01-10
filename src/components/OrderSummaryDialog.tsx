@@ -7,8 +7,7 @@ import {
 	Dialog,
 	DialogActions,
 	DialogContent,
-	DialogTitle,
-	Typography,
+	DialogTitle
 } from "@mui/material";
 
 interface OrderSummaryDialogProps {

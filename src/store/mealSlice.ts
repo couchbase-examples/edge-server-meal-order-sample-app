@@ -5,6 +5,7 @@ import { BusinessMealDoc } from "../types";
 export interface CartMeal {
 	name: string;
 	category: string;
+  mealId: string;
 }
 
 interface MealState {
