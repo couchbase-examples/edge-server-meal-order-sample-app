@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
 import { resetOrder } from "../store/mealSlice";
@@ -36,6 +36,14 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		setOpen(false);
 	};
 
+	const [isUpdate, setIsUpdate] = useState(false);
+
+	// Check if this is an update to an existing order
+	useEffect(() => {
+		const confirmedOrder = localStorage.getItem('confirmed_order');
+		setIsUpdate(!!confirmedOrder);
+	}, []);
+
 	const handleConfirm = async () => {
 		try {
 			const formattedItems = items.map((item) => ({
@@ -49,17 +57,18 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 					seatUserId,
 				})
 			);
+
 			if (updateBusinessInventory.fulfilled.match(resultAction)) {
+				// Save confirmed order to localStorage
+				localStorage.setItem('confirmed_order', JSON.stringify(items));
+				
+				// Reset the order form
 				dispatch(resetOrder());
 				setOpen(false);
 				onOrderSuccess();
 			} else {
 				throw resultAction.payload || resultAction.error;
 			}
-
-			dispatch(resetOrder());
-			setOpen(false);
-			onOrderSuccess();
 		} catch (error) {
 			console.error("Failed to update inventory:", error);
 		}
@@ -90,7 +99,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 			</div>
 
 			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-				<DialogTitle>Order Summary</DialogTitle>
+				<DialogTitle>{isUpdate ? "Update Order" : "Order Summary"}</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error">{error}</Alert>}
 					{items.map((item, idx) => (
@@ -119,7 +128,13 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 						color="primary"
 						disabled={status === "loading"}
 					>
-						{status === "loading" ? <CircularProgress size={24} /> : "Confirm"}
+						{status === "loading" ? (
+							<CircularProgress size={24} />
+						) : isUpdate ? (
+							"Update Order"
+						) : (
+							"Confirm Order"
+						)}
 					</Button>
 				</DialogActions>
 			</Dialog>

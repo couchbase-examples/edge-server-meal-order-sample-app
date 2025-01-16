@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { BusinessMealDoc } from "../types";
+import { api } from "../services/api";
+
+// Local Storage key
+const CART_STORAGE_KEY = 'meal_cart';
 
 /** We only store meal name and category now. */
 export interface CartMeal {
@@ -17,12 +21,47 @@ interface MealState {
 	items: CartMeal[];
 }
 
-const initialState: MealState = {
-	data: null,
-	status: "idle",
-	error: null,
-	items: [],
+// Load initial state from localStorage
+const loadInitialState = (): MealState => {
+  try {
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+    return {
+      data: null,
+      status: "idle",
+      error: null,
+      items: savedCart ? JSON.parse(savedCart) : [],
+    };
+  } catch (error) {
+    console.error('Failed to load cart from localStorage:', error);
+    return {
+      data: null,
+      status: "idle",
+      error: null,
+      items: [],
+    };
+  }
 };
+
+const initialState: MealState = loadInitialState();
+
+// Async thunk for syncing cart with server
+export const syncCartWithServer = createAsyncThunk(
+  'meal/syncCart',
+  async (items: CartMeal[]) => {
+    try {
+      await api.fetch('/american234.AmericanAirlines.AA234/cart', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      });
+      return items;
+    } catch (error) {
+      console.error('Failed to sync cart with server:', error);
+      // Don't throw error to prevent UI disruption
+      // Instead, we'll rely on local storage as backup
+      return items;
+    }
+  }
+);
 
 export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
 	"meal/fetchBusinessMeal",
@@ -71,6 +110,9 @@ const mealSlice = createSlice({
 
 			// Now push the newly selected meal
 			state.items.push(action.payload);
+
+      // Sync with localStorage
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
 		},
 
 		removeMeal: (state, action: PayloadAction<string>) => {
@@ -81,10 +123,15 @@ const mealSlice = createSlice({
 			if (existingIndex >= 0) {
 				state.items.splice(existingIndex, 1);
 			}
+      
+      // Sync with localStorage
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
 		},
 
 		resetOrder: (state) => {
 			state.items = [];
+      // Sync with localStorage
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([]));
 		},
 	},
 	extraReducers(builder) {
@@ -101,6 +148,14 @@ const mealSlice = createSlice({
 			.addCase(fetchBusinessMeal.rejected, (state, action) => {
 				state.status = "failed";
 				state.error = action.error.message ?? "Something went wrong";
+			})
+			// Add cases for syncCartWithServer
+			.addCase(syncCartWithServer.fulfilled, () => {
+				// Server sync successful, no need to update state since it's already in sync
+			})
+			.addCase(syncCartWithServer.rejected, () => {
+				// Server sync failed, but we'll keep the local state as is
+				console.warn('Failed to sync cart with server. Changes saved locally.');
 			});
 	},
 });
