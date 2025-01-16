@@ -4,10 +4,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "cb-red": "#EA2328",   // Primary Couchbase red
-        "cb-teal": "#00BCE4",  // Couchbase teal
+        "cb-red": "#EA2328",
+        "cb-teal": "#00BCE4",
       },
+      screens: {
+        'xs': '375px',    // iPhone SE
+        'sm': '640px',    // Small tablets
+        'md': '768px',    // iPads
+        'lg': '1024px',   // Laptops
+        'xl': '1280px',   // Desktop
+        '2xl': '1536px'   // Large screens
+      },
+      touchAction: {
+        'manipulation': 'manipulation',
+      }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/aspect-ratio'),
+  ],
 };
