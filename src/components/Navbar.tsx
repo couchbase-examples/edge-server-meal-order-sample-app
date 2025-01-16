@@ -1,6 +1,6 @@
-import { AppBar, Toolbar, IconButton, Typography } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import MenuIcon from "@mui/icons-material/Menu";
+import { AppBar, IconButton, Toolbar } from "@mui/material";
 
 interface NavbarProps {
 	onMenuClick: () => void;
