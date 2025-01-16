@@ -9,14 +9,18 @@ const Cart: React.FC = () => {
   const dispatch = useAppDispatch();
   const { items } = useSelector((state: RootState) => state.meal);
   const [confirmedOrder, setConfirmedOrder] = useState<CartMeal[]>([]);
+  const [showConfirmedPane, setShowConfirmedPane] = useState(false);
 
-  // Load confirmed order from localStorage
   useEffect(() => {
     const savedOrder = localStorage.getItem('confirmed_order');
     if (savedOrder) {
-      setConfirmedOrder(JSON.parse(savedOrder));
+      const parsedOrder = JSON.parse(savedOrder);
+      setConfirmedOrder(parsedOrder);
+      setShowConfirmedPane(true);
+    } else {
+      setShowConfirmedPane(false);
     }
-  }, []);
+  }, [items]); // Re-run when items change (cart updates)
 
   // Sync active cart with server whenever items change
   useEffect(() => {
@@ -25,13 +29,13 @@ const Cart: React.FC = () => {
     }
   }, [items, dispatch]);
 
-  // If there's a confirmed order and no active items, show the confirmed order pane
-  if (confirmedOrder.length > 0 && items.length === 0) {
+  // Show confirmed order pane if it's active
+  if (showConfirmedPane && confirmedOrder.length > 0) {
     return <ConfirmedOrderPane order={confirmedOrder} />;
   }
 
-  // Only show cart UI if there's no confirmed order yet
-  if (confirmedOrder.length === 0) {
+  // Show cart UI if there's no confirmed order
+  if (!showConfirmedPane) {
     return (
       <div className="h-full flex flex-col p-4">
         <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
