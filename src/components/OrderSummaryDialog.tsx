@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, store } from "../store";
-import { resetOrder } from "../store/mealSlice";
-import { updateBusinessInventory } from "../store/inventorySlice";
 import {
+	Alert,
 	Button,
+	CircularProgress,
 	Dialog,
 	DialogActions,
 	DialogContent,
 	DialogTitle,
-	CircularProgress,
-	Alert,
 } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, store } from "../store";
+import { updateBusinessInventory } from "../store/inventorySlice";
+import { CartMeal, resetOrder } from "../store/mealSlice";
 import { getOrCreateSeatId } from "../utils/createSeatId";
 
 interface OrderSummaryDialogProps {
@@ -59,8 +59,22 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 			);
 
 			if (updateBusinessInventory.fulfilled.match(resultAction)) {
-				// Save confirmed order to localStorage
-				localStorage.setItem('confirmed_order', JSON.stringify(items));
+				// Get existing confirmed order
+				const existingOrderStr = localStorage.getItem('confirmed_order');
+				const existingOrder: CartMeal[] = existingOrderStr ? JSON.parse(existingOrderStr) : [];
+				
+				if (isUpdate) {
+					// Update only the items that are being modified
+					const updatedOrder = existingOrder.map((existingItem: CartMeal) => {
+						// Find if this item is being updated
+						const updatedItem = items.find(item => item.category === existingItem.category);
+						return updatedItem || existingItem;
+					});
+					localStorage.setItem('confirmed_order', JSON.stringify(updatedOrder));
+				} else {
+					// For new orders, just save the items
+					localStorage.setItem('confirmed_order', JSON.stringify(items));
+				}
 				
 				// Reset the order form
 				dispatch(resetOrder());
