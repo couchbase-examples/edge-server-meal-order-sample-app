@@ -1,12 +1,13 @@
 import {
 	Drawer,
-	List,
-	ListItemText,
 	Box,
-	TextField,
-	IconButton,
+	List,
 	ListItemButton,
 	ListItemIcon,
+	ListItemText,
+	Tooltip,
+  IconButton,
+  TextField,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -16,7 +17,14 @@ import MusicNoteIcon from "@mui/icons-material/MusicNote";
 import FastfoodIcon from "@mui/icons-material/Fastfood";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-export default function LeftSideBar() {
+interface LeftSideBarProps {
+	isSidebarOpen: boolean;
+}
+
+export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
+	// Expanded => 240px, Collapsed => 64px
+	const drawerWidth = isSidebarOpen ? 240 : 64;
+
 	const links = [
 		{ name: "Movies", icon: <MovieIcon /> },
 		{ name: "My Flight", icon: <FlightIcon /> },
@@ -27,54 +35,125 @@ export default function LeftSideBar() {
 	return (
 		<Drawer
 			variant="permanent"
+			open
 			sx={{
 				"& .MuiDrawer-paper": {
-					width: "16.6%", // Sidebar width
-					height: "calc(100vh - 45px)", // Full screen height minus navbar height
-					marginTop: "45px", // Adjust for navbar
-					backgroundColor: "background.default", // Theme background
-					borderRight: "1px solid divider", // Theme divider
+					position: "fixed",
+					top: "38px", // below the navbar
+					left: 0,
+					width: drawerWidth,
+					height: "calc(100% - 45px)",
+					transition: "width 0.3s ease-in-out",
+					overflowX: "hidden",
+					borderRight: "1px solid #ddd",
+					zIndex: 40,
 				},
 			}}
 		>
-			<Box display="flex" flexDirection="column" height="100%">
-				{/* Menu Options */}
-				<List>
-					{links.map((link) => (
-						<ListItemButton component="a" href="#" key={link.name}>
-							<ListItemIcon>{link.icon}</ListItemIcon>
-							<ListItemText primary={link.name} />
+			<SidebarContent isSidebarOpen={isSidebarOpen} links={links} />
+		</Drawer>
+	);
+}
+
+function SidebarContent({
+	isSidebarOpen,
+	links,
+}: {
+	isSidebarOpen: boolean;
+	links: Array<{ name: string; icon: JSX.Element }>;
+}) {
+	// If it's closed => icons only; if open => icons + text
+	return (
+		<Box display="flex" flexDirection="column" height="100%" pt={2}>
+			<List>
+				{links.map((link) => (
+					<Tooltip
+						key={link.name}
+						title={!isSidebarOpen ? link.name : ""}
+						placement="right"
+					>
+						<ListItemButton
+							component="a"
+							href="#"
+							sx={{
+								minHeight: 48,
+								justifyContent: isSidebarOpen ? "initial" : "center",
+								px: 2.5,
+							}}
+						>
+							<ListItemIcon
+								sx={{
+									minWidth: 0,
+									mr: isSidebarOpen ? 2 : 0,
+									justifyContent: "center",
+								}}
+							>
+								{link.icon}
+							</ListItemIcon>
+							{isSidebarOpen && <ListItemText primary={link.name} />}
 						</ListItemButton>
-					))}
-					{/* Highlighted Food Order Item */}
+					</Tooltip>
+				))}
+
+				{/* Special Food & Drinks */}
+				<Tooltip
+					title={!isSidebarOpen ? "Food & Drinks" : ""}
+					placement="right"
+				>
 					<ListItemButton
 						component="a"
 						href="#"
-						key="Food & Drinks"
 						sx={{
-							backgroundColor: "red", // Highlight color
+							minHeight: 48,
+							justifyContent: isSidebarOpen ? "initial" : "center",
+							px: 2.5,
+							backgroundColor: "red",
 							"&:hover": {
-								backgroundColor: "darkred", // Darker highlight on hover
+								backgroundColor: "darkred",
 							},
-							color: "white", // White text
+							color: "white",
+							mt: 2,
 						}}
 					>
-						<ListItemIcon>
-							<FastfoodIcon sx={{ color: "white" }} />{" "}
-							{/* Icon with white color */}
+						<ListItemIcon
+							sx={{
+								minWidth: 0,
+								mr: isSidebarOpen ? 2 : 0,
+								justifyContent: "center",
+								color: "white",
+							}}
+						>
+							<FastfoodIcon />
 						</ListItemIcon>
-						<ListItemText primary="Food & Drinks" />
+						{isSidebarOpen && <ListItemText primary="Food & Drinks" />}
 					</ListItemButton>
+				</Tooltip>
 
-					<ListItemButton component="a" href="#" key={"More"}>
-						<ListItemIcon>
+				{/* "More" link */}
+				<Tooltip title={!isSidebarOpen ? "More" : ""} placement="right">
+					<ListItemButton
+						sx={{
+							minHeight: 48,
+							justifyContent: isSidebarOpen ? "initial" : "center",
+							px: 2.5,
+							mt: 2,
+						}}
+					>
+						<ListItemIcon
+							sx={{
+								minWidth: 0,
+								mr: isSidebarOpen ? 2 : 0,
+								justifyContent: "center",
+							}}
+						>
 							<ExpandMoreIcon />
 						</ListItemIcon>
-						<ListItemText primary={"More"} />
+						{isSidebarOpen && <ListItemText primary="More" />}
 					</ListItemButton>
-				</List>
+				</Tooltip>
+			</List>
 
-				{/* Search Option */}
+      {/* Search Option */}
 				<Box mt="auto" p={2}>
 					<Box display="flex" alignItems="center" gap={1}>
 						<TextField
@@ -88,7 +167,6 @@ export default function LeftSideBar() {
 						</IconButton>
 					</Box>
 				</Box>
-			</Box>
-		</Drawer>
+		</Box>
 	);
 }

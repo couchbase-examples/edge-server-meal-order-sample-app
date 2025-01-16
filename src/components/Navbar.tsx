@@ -1,10 +1,33 @@
-import React from 'react';
+import { AppBar, Toolbar, IconButton, Typography } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 
-const Navbar: React.FC = () => {
-  return (
-    <nav className="flex items-center px-4 py-2 bg-cb-red text-white">
-      <div className="flex items-center">
+interface NavbarProps {
+	onMenuClick: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
+	return (
+		<AppBar
+			position="fixed"
+			sx={{
+				height: "45px",
+				zIndex: (theme) => theme.zIndex.drawer + 1,
+			}}
+		>
+			<Toolbar variant="dense" sx={{ minHeight: "45px !important" }}>
+				{/* Single hamburger for all screen sizes */}
+				<IconButton
+					color="inherit"
+					aria-label="open drawer"
+					edge="start"
+					onClick={onMenuClick}
+					sx={{ mr: 2 }}
+				>
+					<MenuIcon />
+				</IconButton>
+
+				<div className="flex items-center">
         <FlightTakeoffIcon className="mr-2" />
         <span className="font-bold text-lg">American Airlines</span>
       </div>
@@ -12,8 +35,7 @@ const Navbar: React.FC = () => {
         <li>Home</li>
         <li>Profile</li>
       </ul>
-    </nav>
-  );
-};
-
-export default Navbar;
+			</Toolbar>
+		</AppBar>
+	);
+}

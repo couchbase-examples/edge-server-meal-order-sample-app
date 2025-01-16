@@ -8,7 +8,7 @@ const Cart: React.FC = () => {
   const { items } = useSelector((state: RootState) => state.meal);
 
   return (
-    <div className="h-full flex flex-col p-4 mt-10">
+    <div className="h-full flex flex-col p-4">
       <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (

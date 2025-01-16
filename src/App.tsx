@@ -1,4 +1,5 @@
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { useState, useEffect } from "react";
+import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
 import { CssBaseline } from "@mui/material";
 import Navbar from "./components/Navbar";
 import OrderSummary from "./components/OrderSummary";
@@ -9,62 +10,74 @@ import BusinessMealPage from "./components/businessMealPage";
 import { getOrCreateSeatId } from "./utils/createSeatId";
 
 const couchbaseTheme = createTheme({
-  palette: {
-    primary: { main: "#EA2328" },
-    secondary: { main: "#00BCE4" },
-  },
-  typography: {
-    fontFamily: ["Arial", "sans-serif"].join(","),
-  },
+	palette: {
+		primary: { main: "#EA2328" },
+		secondary: { main: "#00BCE4" },
+	},
+	typography: {
+		fontFamily: ["Arial", "sans-serif"].join(","),
+	},
 });
 
-function App() {
-  getOrCreateSeatId();
-  return (
-    <ThemeProvider theme={couchbaseTheme}>
-      <CssBaseline />
+export default function App() {
+	// Seat ID logic just as a placeholder
+	getOrCreateSeatId();
 
-      {/* 
-         Full-height container for the layout. 
-         (h-screen ensures the vertical space is used.)
-      */}
-      <div className="flex flex-col h-screen">
-        {/* Top Navbar */}
-        <Navbar />
+	const isDesktop = useMediaQuery(couchbaseTheme.breakpoints.up("md")); // ≥768px
 
-        {/* Main row: left sidebar, content, cart */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar */}
-          <aside className="w-64 flex-none bg-white border-r border-gray-200">
-            <LeftSideBar />
-          </aside>
+	// Single state: isSidebarOpen => whether the sidebar is fully expanded (true) or icon-only (false)
+	const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);
 
-          {/* Center Content + Footer (stacked vertically) */}
-          <div className="flex flex-col flex-1 overflow-y-auto bg-gray-50">
-            <main className="flex-1 p-4">
-              <h1 className="text-2xl font-bold mb-4">Menu</h1>
-              <BusinessMealPage />
-            </main>
+	// Whenever screen size changes from mobile to desktop or vice versa,
+	// reset the sidebar to open if it's desktop, or collapsed if it's mobile.
+	useEffect(() => {
+		setIsSidebarOpen(isDesktop);
+	}, [isDesktop]);
 
-            {/* 
-              Footer that stays attached to the bottom. 
-              - Either use "sticky bottom-0" if you want it to stick 
-                within the scrolling container
-              - Or use "fixed bottom-0 left-0 w-full" to lock it to the viewport
-            */}
-            <footer className="sticky bottom-0 bg-gray-100 p-4 border-t border-gray-200 z-50">
-              <OrderSummary />
-            </footer>
-          </div>
+	// Toggle for our hamburger button
+	const handleSidebarToggle = () => {
+		setIsSidebarOpen((prev) => !prev);
+	};
 
-          {/* Cart Section */}
-          <aside className="w-72 flex-none p-4 bg-white border-l border-gray-200 relative">
-            <Cart />
-          </aside>
-        </div>
-      </div>
-    </ThemeProvider>
-  );
+	// Decide how wide the sidebar is
+	// if open => 240px, if icon => 64px
+	// main content shifts accordingly to avoid overlap.
+	const sidebarWidth = isSidebarOpen ? 240 : 64;
+
+	return (
+		<ThemeProvider theme={couchbaseTheme}>
+			<CssBaseline />
+			<div className="flex flex-col h-screen">
+				{/* Single hamburger in Navbar */}
+				<Navbar onMenuClick={handleSidebarToggle} />
+
+				{/* Main container (under the 45px navbar) */}
+				<div className="flex flex-1 h-[calc(100vh-45px)]">
+					{/* Left SideBar (always "permanent" so it does NOT overlay) */}
+					<LeftSideBar isSidebarOpen={isSidebarOpen} />
+
+					{/* Main content area: shift right so it’s never hidden */}
+					<div
+						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
+						style={{ marginLeft: `${sidebarWidth}px` }}
+					>
+						<main className="flex-1">
+							<div className="p-2 sm:p-4 mt-8">
+								<BusinessMealPage />
+							</div>
+						</main>
+
+						<footer className="sticky bottom-0 bg-gray-100 p-2 sm:p-4 border-t border-gray-200">
+							<OrderSummary />
+						</footer>
+					</div>
+
+					{/* Right Cart (desktop only) */}
+					<aside className="w-72 mt-12 bg-white border-l border-gray-200">
+						<Cart />
+					</aside>
+				</div>
+			</div>
+		</ThemeProvider>
+	);
 }
-
-export default App;

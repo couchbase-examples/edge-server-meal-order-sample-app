@@ -58,19 +58,19 @@ function BusinessMealPage() {
 	// A helper to render each category
 	const renderMealCategory = (categoryName: string, items: any[]) => {
 		return (
-			<div className="mb-4">
-				<Typography variant="h5" className="font-bold">
+			<div className="w-full max-w-[2000px] mx-auto px-4">
+				<Typography variant="h5" className="font-bold px-2 pt-2">
 					{categoryName.toUpperCase()}
 				</Typography>
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-2">
 					{items.map((item) => {
-						let matchedInventory: { 
-                            startingInventory: number;
-                            seatsOrdered: Record<string, number>;
-                        } = { 
-                            startingInventory: 0,
-                            seatsOrdered: {}
-                        };
+						let matchedInventory: {
+							startingInventory: number;
+							seatsOrdered: Record<string, number>;
+						} = {
+							startingInventory: 0,
+							seatsOrdered: {},
+						};
 						const invArray = (inventory as any)[categoryName] || [];
 						invArray.forEach((invObj: any) => {
 							if (Object.keys(invObj)[0] === item.mealid) {
@@ -117,6 +117,12 @@ function BusinessMealPage() {
 										available
 									)
 								}
+								sx={{
+									"&:active": {
+										transform: "scale(0.98)",
+									},
+									touchAction: "manipulation",
+								}}
 							>
 								{/* Checkmark Icon for Selected Items */}
 								{isSelected && !isOutOfStock && (
@@ -127,23 +133,27 @@ function BusinessMealPage() {
 										/>
 									</div>
 								)}
-
-								<CardContent>
-									<Typography variant="h6">{item.meal}</Typography>
-									<Typography variant="body2" className="text-gray-600">
+								<CardContent className="p-3 sm:p-4">
+									<Typography variant="h6" className="text-base sm:text-lg">
+										{item.meal}
+									</Typography>
+									<Typography variant="body2" className="text-sm text-gray-600">
 										{item.description}
 									</Typography>
-									<img
-										src={getImagePath(item.assetid)}
-										alt={item.meal}
-										className="w-full h-48 object-cover mt-2"
-										onError={(e) => {
-											const target = e.target as HTMLImageElement;
-											target.src = getImagePath("default");
-										}}
-									/>
+									<div className="aspect-w-16 aspect-h-9 mt-2">
+										<img
+											src={getImagePath(item.assetid)}
+											alt={item.meal}
+											className="w-full h-full object-cover rounded"
+											loading="lazy"
+											onError={(e) => {
+												const target = e.target as HTMLImageElement;
+												target.src = getImagePath("default");
+											}}
+										/>
+									</div>
 									{isOutOfStock && (
-										<div className="mt-2 text-red-500 font-semibold">
+										<div className="mt-2 text-red-500 font-semibold text-sm">
 											Currently Unavailable
 										</div>
 									)}
@@ -157,7 +167,7 @@ function BusinessMealPage() {
 	};
 
 	return (
-		<div className="p-4">
+		<div className="p-2 sm:p-4">
 			{renderMealCategory("breakfast", breakfast)}
 			{renderMealCategory("lunch", lunch)}
 			{renderMealCategory("dinner", dinner)}
