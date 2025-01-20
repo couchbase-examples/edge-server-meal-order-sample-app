@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { addMeal, removeMeal } from "../store/mealSlice";
@@ -7,25 +7,6 @@ import { useAppDispatch } from "../hooks/useAppDispatch";
 const Cart: React.FC = () => {
   const dispatch = useAppDispatch();
   const { items, confirmedOrder } = useSelector((state: RootState) => state.meal);
-
-  useEffect(() => {
-    // If we have a confirmed order in localStorage but not in state, restore it
-    if (confirmedOrder.length === 0) {
-      try {
-        const backup = localStorage.getItem('meal_cart');
-        if (backup) {
-          const items = JSON.parse(backup);
-          if (Array.isArray(items) && items.length > 0) {
-            items.forEach(item => {
-              dispatch(addMeal(item));
-            });
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to restore from localStorage:', error);
-      }
-    }
-  }, [confirmedOrder.length, dispatch]);
 
   const handleEdit = () => {
     if (confirmedOrder && confirmedOrder.length > 0) {

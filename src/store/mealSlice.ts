@@ -194,26 +194,30 @@ const mealSlice = createSlice({
 			})
 			// Add cases for fetchExistingOrder
 			.addCase(fetchExistingOrder.fulfilled, (state, action) => {
-				// Use server response if available, otherwise try localStorage
-				const orderItems = action.payload?.length > 0 
-					? action.payload 
-					: (() => {
-						try {
-							const backup = localStorage.getItem(CART_STORAGE_KEY);
-							return backup ? JSON.parse(backup) : [];
-						} catch (error) {
-							console.warn('Failed to restore from localStorage:', error);
-							return [];
-						}
-					})();
-
-				// Update state and backup to localStorage
-				if (orderItems.length > 0) {
-					state.confirmedOrder = orderItems;
+				// If server has confirmed order, use that
+				if (action.payload && action.payload.length > 0) {
+					state.confirmedOrder = action.payload;
+					state.items = []; // Clear cart
+					// Update localStorage
 					try {
-						localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(orderItems));
+						localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(action.payload));
 					} catch (error) {
 						console.warn('Failed to backup to localStorage:', error);
+					}
+				} else {
+					// If no confirmed order on server, check localStorage for cart items
+					try {
+						const backup = localStorage.getItem(CART_STORAGE_KEY);
+						if (backup) {
+							const items = JSON.parse(backup);
+							if (Array.isArray(items) && items.length > 0) {
+								// Restore to cart instead of confirmed order
+								state.items = items;
+								state.confirmedOrder = [];
+							}
+						}
+					} catch (error) {
+						console.warn('Failed to restore from localStorage:', error);
 					}
 				}
 			});
