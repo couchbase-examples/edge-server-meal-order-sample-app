@@ -1,13 +1,17 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../store/store";
 import { removeMeal } from "../store/mealSlice";
-import { useTheme } from "@mui/material/styles"; // <-- Import MUI theme
+import { useTheme } from "@mui/material/styles";
+import { RootState } from "../store";
+import { useParams } from "react-router-dom";
 
 const Cart: React.FC = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
-  const { items } = useSelector((state: RootState) => state.meal);
+	const { seatClass } = useParams();
+	const isEconomy = seatClass === "economy";
+
+	const { items } = useSelector((state: RootState) => isEconomy? state.economyMeal : state.businessMeal);
 
   return (
     <div className="h-full flex flex-col p-4">

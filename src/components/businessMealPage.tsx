@@ -5,17 +5,38 @@ import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
 import { Card, CardContent, Typography, useTheme } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useParams } from "react-router-dom";
+import {
+	addEconomyMeal,
+	fetchEconomyMeal,
+	removeEconomyMeal,
+} from "../store/economyMealSlice";
+import { fetchEconomyInventory } from "../store/economyInventorySlice";
 
 function BusinessMealPage() {
 	const dispatch = useAppDispatch();
-	const mealState = useAppSelector((state) => state.meal);
-	const inventoryState = useAppSelector((state) => state.inventory);
+	const { seatClass } = useParams();
+	// Determine which slice to use
+	const isEconomy = seatClass === "economy";
+
+	// If economy => economyMeal, else => businessMeal
+	const mealState = useAppSelector((state) =>
+		isEconomy ? state.economyMeal : state.businessMeal
+	);
+	const inventoryState = useAppSelector((state) =>
+		isEconomy ? state.economyInventory : state.businessInventory
+	);
 	const theme = useTheme();
 
 	useEffect(() => {
-		dispatch(fetchBusinessMeal());
-		dispatch(fetchBusinessInventory());
-	}, [dispatch]);
+		if (isEconomy) {
+			dispatch(fetchEconomyMeal());
+			dispatch(fetchEconomyInventory());
+		} else {
+			dispatch(fetchBusinessMeal());
+			dispatch(fetchBusinessInventory());
+		}
+	}, [dispatch, isEconomy]);
 
 	if (mealState.status === "loading" || inventoryState.status === "loading") {
 		return <div>Loading...</div>;
@@ -45,9 +66,15 @@ function BusinessMealPage() {
 		// If already selected, remove it; otherwise add it.
 		const isSelected = mealState.items.some((item) => item.name === mealName);
 		if (isSelected) {
-			dispatch(removeMeal(mealName));
+			if (isEconomy) dispatch(removeEconomyMeal(mealName));
+			else dispatch(removeMeal(mealName));
 		} else {
-			dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
+			if (isEconomy)
+				dispatch(
+					addEconomyMeal({ name: mealName, category: categoryName, mealId })
+				);
+			else
+				dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
 		}
 	};
 
@@ -112,8 +139,10 @@ function BusinessMealPage() {
 								className={cardClass}
 								style={{
 									// If selected, the border color is the theme's primary color
-									borderColor: isSelected ? theme.palette.primary.main : "rgb(229 231 235)",
-								  }}
+									borderColor: isSelected
+										? theme.palette.primary.main
+										: "rgb(229 231 235)",
+								}}
 								onClick={() =>
 									handleCardClick(
 										item.meal,
@@ -132,10 +161,7 @@ function BusinessMealPage() {
 								{/* Checkmark Icon for Selected Items */}
 								{isSelected && !isOutOfStock && (
 									<div className="absolute top-2 right-2">
-										<CheckCircleIcon
-											fontSize="small"
-											color="primary"
-										/>
+										<CheckCircleIcon fontSize="small" color="primary" />
 									</div>
 								)}
 								<CardContent className="p-3 sm:p-4">

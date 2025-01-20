@@ -1,8 +1,15 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
-import { resetOrder } from "../store/mealSlice";
+
+// Business
+import { resetOrder as resetBusinessOrder } from "../store/mealSlice";
 import { updateBusinessInventory } from "../store/inventorySlice";
+
+// Economy
+import { resetEconomyOrder } from "../store/economyMealSlice";
+import { updateEconomyInventory } from "../store/economyInventorySlice";
+
 import {
 	Button,
 	Dialog,
@@ -13,6 +20,7 @@ import {
 	Alert,
 } from "@mui/material";
 import { getOrCreateSeatId } from "../utils/createSeatId";
+import { useParams } from "react-router-dom";
 
 interface OrderSummaryDialogProps {
 	onOrderSuccess: () => void;
@@ -22,16 +30,31 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
 }) => {
 	const dispatch = useDispatch<typeof store.dispatch>();
-	const { items } = useSelector((state: RootState) => state.meal);
-	const { status, error } = useSelector((state: RootState) => state.inventory);
-    const seatUserId = getOrCreateSeatId();
+	const { seatClass } = useParams();
+
+	const isEconomy = seatClass === "economy";
+
+	// Choose the correct slice based on isEconomy
+	const { items } = useSelector((state: RootState) =>
+		isEconomy ? state.economyMeal : state.businessMeal
+	);
+	const { status, error } = useSelector((state: RootState) =>
+		isEconomy ? state.economyInventory : state.businessInventory
+	);
+
+	// Decide which actions to dispatch
+	const resetAction = isEconomy ? resetEconomyOrder : resetBusinessOrder;
+	const updateInventoryAction = isEconomy
+		? updateEconomyInventory
+		: updateBusinessInventory;
+
+	const seatUserId = getOrCreateSeatId();
 
 	const [open, setOpen] = useState(false);
 
 	const handleOpen = () => {
 		setOpen(true);
 	};
-
 	const handleClose = () => {
 		setOpen(false);
 	};
@@ -43,30 +66,30 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				category: item.category,
 			}));
 
+			// Dispatch the correct update action (economy or business)
 			const resultAction = await dispatch(
-				updateBusinessInventory({
+				updateInventoryAction({
 					items: formattedItems,
 					seatUserId,
 				})
 			);
-			if (updateBusinessInventory.fulfilled.match(resultAction)) {
-				dispatch(resetOrder());
+
+			// If successful
+			if (updateInventoryAction.fulfilled.match(resultAction)) {
+				dispatch(resetAction());
 				setOpen(false);
 				onOrderSuccess();
 			} else {
+				// If there's an error, throw it
 				throw resultAction.payload || resultAction.error;
 			}
-
-			dispatch(resetOrder());
-			setOpen(false);
-			onOrderSuccess();
 		} catch (error) {
 			console.error("Failed to update inventory:", error);
 		}
 	};
 
 	const handleReset = () => {
-		dispatch(resetOrder());
+		dispatch(resetAction());
 	};
 
 	if (items.length === 0) {
