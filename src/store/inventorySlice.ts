@@ -1,6 +1,13 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { BusinessInventoryDoc } from "../types";
 
+interface MealInventoryItem {
+  [key: string]: {
+    seatsOrdered: { [seatId: string]: number };
+    startingInventory: number;
+  };
+}
+
 interface InventoryState {
 	data: BusinessInventoryDoc | null;
 	status: "idle" | "loading" | "succeeded" | "failed";
@@ -69,13 +76,26 @@ export const updateBusinessInventory = createAsyncThunk(
 			// Create updated inventory object
 			const updatedInventory = { ...currentInventory };
 
-			// Update seatsOrdered for each item
+			// First, remove all existing orders for this seat
+			['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'].forEach(category => {
+				const categoryItems = updatedInventory[category];
+				if (categoryItems) {
+					categoryItems.forEach((mealItem: MealInventoryItem) => {
+						const mealKey = Object.keys(mealItem)[0];
+						if (mealItem[mealKey].seatsOrdered && mealItem[mealKey].seatsOrdered[payload.seatUserId]) {
+							delete mealItem[mealKey].seatsOrdered[payload.seatUserId];
+						}
+					});
+				}
+			});
+
+			// Then add new orders
 			payload.items.forEach((item) => {
 				const category = item.category.toLowerCase();
 				const categoryItems = updatedInventory[category];
 
 				const mealItem = categoryItems.find(
-					(mealId: string) => Object.keys(mealId)[0] === item.id
+					(mealId: MealInventoryItem) => Object.keys(mealId)[0] === item.id
 				);
 				if (mealItem) {
 					const mealKey = Object.keys(mealItem)[0];
