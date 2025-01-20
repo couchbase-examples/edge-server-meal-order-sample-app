@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react";
-import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
-import { CssBaseline } from "@mui/material";
-import Navbar from "./components/Navbar";
-import OrderSummary from "./components/OrderSummary";
+import { createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
+import { useEffect, useState } from "react";
+import BusinessMealPage from "./components/businessMealPage";
 import Cart from "./components/Cart";
 import LeftSideBar from "./components/LeftSideBar";
-import "./index.css";
-import BusinessMealPage from "./components/businessMealPage";
-import { getOrCreateSeatId } from "./utils/createSeatId";
+import Navbar from "./components/Navbar";
+import OrderSummary from "./components/OrderSummary";
 import { useAppDispatch } from "./hooks/useAppDispatch";
+import "./index.css";
 import { fetchExistingOrder } from "./store/mealSlice";
+import { getOrCreateSeatId } from "./utils/createSeatId";
 
 const couchbaseTheme = createTheme({
 	palette: {
@@ -47,12 +46,24 @@ export default function App() {
 	const sidebarWidth = isSidebarOpen ? 240 : 64;
 
 	const dispatch = useAppDispatch();
-	const seatId = getOrCreateSeatId();
 
-	// Fetch existing order on app load
+	/**
+	 * Initialize app state by loading existing order.
+	 * Priority: Server > localStorage
+	 */
 	useEffect(() => {
-		dispatch(fetchExistingOrder(seatId));
-	}, [dispatch, seatId]);
+		const loadExistingOrder = async () => {
+			const seatId = getOrCreateSeatId();
+			try {
+				// Fetch from server first
+				await dispatch(fetchExistingOrder(seatId)).unwrap();
+			} catch (error) {
+				console.error('Failed to fetch from server:', error);
+			}
+		};
+
+		loadExistingOrder();
+	}, [dispatch]);
 
 	return (
 		<ThemeProvider theme={couchbaseTheme}>

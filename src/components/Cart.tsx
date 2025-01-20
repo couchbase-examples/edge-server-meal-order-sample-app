@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { addMeal, removeMeal } from "../store/mealSlice";
@@ -8,15 +8,36 @@ const Cart: React.FC = () => {
   const dispatch = useAppDispatch();
   const { items, confirmedOrder } = useSelector((state: RootState) => state.meal);
 
+  useEffect(() => {
+    // If we have a confirmed order in localStorage but not in state, restore it
+    if (confirmedOrder.length === 0) {
+      try {
+        const backup = localStorage.getItem('meal_cart');
+        if (backup) {
+          const items = JSON.parse(backup);
+          if (Array.isArray(items) && items.length > 0) {
+            items.forEach(item => {
+              dispatch(addMeal(item));
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to restore from localStorage:', error);
+      }
+    }
+  }, [confirmedOrder.length, dispatch]);
+
   const handleEdit = () => {
-    // Move confirmed items back to cart
-    confirmedOrder.forEach(item => {
-      dispatch(addMeal(item));
-    });
+    if (confirmedOrder && confirmedOrder.length > 0) {
+      // Move confirmed items back to cart
+      confirmedOrder.forEach(item => {
+        dispatch(addMeal(item));
+      });
+    }
   };
 
   // Show confirmed order if it exists
-  if (confirmedOrder.length > 0) {
+  if (confirmedOrder && confirmedOrder.length > 0) {
     return (
       <div className="h-full flex flex-col p-4">
         <div className="flex justify-between items-center mb-4">

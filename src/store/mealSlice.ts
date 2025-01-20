@@ -32,6 +32,10 @@ const initialState: MealState = {
 };
 
 // Async thunk for syncing cart with server
+/**
+ * Fetches existing order for a seat from the server.
+ * Returns an empty array if no order exists or if there's an error.
+ */
 export const fetchExistingOrder = createAsyncThunk(
   'meal/fetchExistingOrder',
   async (seatId: string) => {
@@ -39,8 +43,9 @@ export const fetchExistingOrder = createAsyncThunk(
       const response = await api.fetch(`/american234.AmericanAirlines.AA234/cart/${seatId}`, {
         method: 'GET'
       });
-      const data = await response.json();
-      return data.items as CartMeal[];
+      
+      // Handle both array response and { items: [] } response
+      return Array.isArray(response) ? response : (response?.items || []);
     } catch (error) {
       console.error('Failed to fetch existing order:', error);
       return [];
@@ -189,7 +194,28 @@ const mealSlice = createSlice({
 			})
 			// Add cases for fetchExistingOrder
 			.addCase(fetchExistingOrder.fulfilled, (state, action) => {
-				state.confirmedOrder = action.payload;
+				// Use server response if available, otherwise try localStorage
+				const orderItems = action.payload?.length > 0 
+					? action.payload 
+					: (() => {
+						try {
+							const backup = localStorage.getItem(CART_STORAGE_KEY);
+							return backup ? JSON.parse(backup) : [];
+						} catch (error) {
+							console.warn('Failed to restore from localStorage:', error);
+							return [];
+						}
+					})();
+
+				// Update state and backup to localStorage
+				if (orderItems.length > 0) {
+					state.confirmedOrder = orderItems;
+					try {
+						localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(orderItems));
+					} catch (error) {
+						console.warn('Failed to backup to localStorage:', error);
+					}
+				}
 			});
 	},
 });
