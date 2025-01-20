@@ -3,13 +3,14 @@ import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
 import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
-import { Card, CardContent, Typography } from "@mui/material";
+import { Card, CardContent, Typography, useTheme } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 function BusinessMealPage() {
 	const dispatch = useAppDispatch();
 	const mealState = useAppSelector((state) => state.meal);
 	const inventoryState = useAppSelector((state) => state.inventory);
+	const theme = useTheme();
 
 	useEffect(() => {
 		dispatch(fetchBusinessMeal());
@@ -109,6 +110,10 @@ function BusinessMealPage() {
 							<Card
 								key={item.mealid}
 								className={cardClass}
+								style={{
+									// If selected, the border color is the theme's primary color
+									borderColor: isSelected ? theme.palette.primary.main : "rgb(229 231 235)",
+								  }}
 								onClick={() =>
 									handleCardClick(
 										item.meal,
@@ -129,7 +134,7 @@ function BusinessMealPage() {
 									<div className="absolute top-2 right-2">
 										<CheckCircleIcon
 											fontSize="small"
-											className="text-green-500"
+											color="primary"
 										/>
 									</div>
 								)}

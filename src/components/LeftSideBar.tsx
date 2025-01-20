@@ -6,8 +6,10 @@ import {
 	ListItemIcon,
 	ListItemText,
 	Tooltip,
-  IconButton,
-  TextField,
+	IconButton,
+	TextField,
+	useTheme,
+	Theme,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -22,15 +24,8 @@ interface LeftSideBarProps {
 }
 
 export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
-	// Expanded => 240px, Collapsed => 64px
+	const theme: Theme = useTheme(); // Access the selected (business/economy) theme
 	const drawerWidth = isSidebarOpen ? 240 : 64;
-
-	const links = [
-		{ name: "Movies", icon: <MovieIcon /> },
-		{ name: "My Flight", icon: <FlightIcon /> },
-		{ name: "Luggage", icon: <LuggageIcon /> },
-		{ name: "Music Audio", icon: <MusicNoteIcon /> },
-	];
 
 	return (
 		<Drawer
@@ -39,7 +34,7 @@ export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
 			sx={{
 				"& .MuiDrawer-paper": {
 					position: "fixed",
-					top: "38px", // below the navbar
+					top: "38px",
 					left: 0,
 					width: drawerWidth,
 					height: "calc(100% - 45px)",
@@ -50,19 +45,24 @@ export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
 				},
 			}}
 		>
-			<SidebarContent isSidebarOpen={isSidebarOpen} links={links} />
+			<SidebarContent isSidebarOpen={isSidebarOpen} theme={theme} />
 		</Drawer>
 	);
 }
 
 function SidebarContent({
 	isSidebarOpen,
-	links,
+	theme,
 }: {
 	isSidebarOpen: boolean;
-	links: Array<{ name: string; icon: JSX.Element }>;
+	theme: Theme;
 }) {
-	// If it's closed => icons only; if open => icons + text
+	const links = [
+		{ name: "Movies", icon: <MovieIcon /> },
+		{ name: "My Flight", icon: <FlightIcon /> },
+		{ name: "Luggage", icon: <LuggageIcon /> },
+		{ name: "Music Audio", icon: <MusicNoteIcon /> },
+	];
 	return (
 		<Box display="flex" flexDirection="column" height="100%" pt={2}>
 			<List>
@@ -107,9 +107,9 @@ function SidebarContent({
 							minHeight: 48,
 							justifyContent: isSidebarOpen ? "initial" : "center",
 							px: 2.5,
-							backgroundColor: "red",
+							backgroundColor: theme.palette.primary.main,
 							"&:hover": {
-								backgroundColor: "darkred",
+								backgroundColor: theme.palette.primary.dark,
 							},
 							color: "white",
 							mt: 2,
@@ -153,20 +153,20 @@ function SidebarContent({
 				</Tooltip>
 			</List>
 
-      {/* Search Option */}
-				<Box mt="auto" p={2}>
-					<Box display="flex" alignItems="center" gap={1}>
-						<TextField
-							fullWidth
-							placeholder="Search..."
-							variant="outlined"
-							size="small"
-						/>
-						<IconButton>
-							<SearchIcon />
-						</IconButton>
-					</Box>
+			{/* Search Option */}
+			<Box mt="auto" p={2}>
+				<Box display="flex" alignItems="center" gap={1}>
+					<TextField
+						fullWidth
+						placeholder="Search..."
+						variant="outlined"
+						size="small"
+					/>
+					<IconButton>
+						<SearchIcon />
+					</IconButton>
 				</Box>
+			</Box>
 		</Box>
 	);
 }

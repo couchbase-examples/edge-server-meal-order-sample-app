@@ -2,9 +2,11 @@ import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
 import { removeMeal } from "../store/mealSlice";
+import { useTheme } from "@mui/material/styles"; // <-- Import MUI theme
 
 const Cart: React.FC = () => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const { items } = useSelector((state: RootState) => state.meal);
 
   return (
@@ -25,7 +27,10 @@ const Cart: React.FC = () => {
                   <p className="text-sm text-gray-500">{item.category}</p>
                 </div>
                 <button
-                  className="px-3 py-1 text-red-600 rounded-full hover:bg-red-50 active:bg-red-100 touch-manipulation"
+                  className="px-3 py-1 rounded-full hover:bg-opacity-10 active:bg-opacity-20 touch-manipulation"
+                  style={{
+                    color: theme.palette.primary.main,
+                  }}
                   onClick={() => dispatch(removeMeal(item.name))}
                 >
                   Remove
