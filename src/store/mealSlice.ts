@@ -19,32 +19,35 @@ interface MealState {
 	error: string | null;
 	// Cart items (one meal per category)
 	items: CartMeal[];
+	// Confirmed order
+	confirmedOrder: CartMeal[];
 }
 
-// Load initial state from localStorage
-const loadInitialState = (): MealState => {
-  try {
-    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-    return {
-      data: null,
-      status: "idle",
-      error: null,
-      items: savedCart ? JSON.parse(savedCart) : [],
-    };
-  } catch (error) {
-    console.error('Failed to load cart from localStorage:', error);
-    return {
-      data: null,
-      status: "idle",
-      error: null,
-      items: [],
-    };
-  }
+const initialState: MealState = {
+  data: null,
+  status: "idle",
+  error: null,
+  items: [],
+  confirmedOrder: [],
 };
 
-const initialState: MealState = loadInitialState();
-
 // Async thunk for syncing cart with server
+export const fetchExistingOrder = createAsyncThunk(
+  'meal/fetchExistingOrder',
+  async (seatId: string) => {
+    try {
+      const response = await api.fetch(`/american234.AmericanAirlines.AA234/cart/${seatId}`, {
+        method: 'GET'
+      });
+      const data = await response.json();
+      return data.items as CartMeal[];
+    } catch (error) {
+      console.error('Failed to fetch existing order:', error);
+      return [];
+    }
+  }
+);
+
 export const syncCartWithServer = createAsyncThunk(
   'meal/syncCart',
   async (items: CartMeal[]) => {
@@ -111,8 +114,12 @@ const mealSlice = createSlice({
 			// Now push the newly selected meal
 			state.items.push(action.payload);
 
-      // Sync with localStorage
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+      // Use localStorage as backup only
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+      } catch (error) {
+        console.warn('Failed to backup to localStorage:', error);
+      }
 		},
 
 		removeMeal: (state, action: PayloadAction<string>) => {
@@ -124,14 +131,22 @@ const mealSlice = createSlice({
 				state.items.splice(existingIndex, 1);
 			}
       
-      // Sync with localStorage
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+      // Use localStorage as backup only
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+      } catch (error) {
+        console.warn('Failed to backup to localStorage:', error);
+      }
 		},
 
 		resetOrder: (state) => {
 			state.items = [];
-      // Sync with localStorage
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([]));
+      // Use localStorage as backup only
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([]));
+      } catch (error) {
+        console.warn('Failed to backup to localStorage:', error);
+      }
 		},
 	},
 	extraReducers(builder) {
@@ -150,12 +165,31 @@ const mealSlice = createSlice({
 				state.error = action.error.message ?? "Something went wrong";
 			})
 			// Add cases for syncCartWithServer
-			.addCase(syncCartWithServer.fulfilled, () => {
-				// Server sync successful, no need to update state since it's already in sync
+			.addCase(syncCartWithServer.fulfilled, (state, action) => {
+				// Update state with server response
+				state.confirmedOrder = action.payload;
+				state.items = []; // Clear cart after confirmation
+				// Backup to localStorage
+				try {
+					localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(action.payload));
+				} catch (error) {
+					console.warn('Failed to backup to localStorage:', error);
+				}
 			})
-			.addCase(syncCartWithServer.rejected, () => {
-				// Server sync failed, but we'll keep the local state as is
-				console.warn('Failed to sync cart with server. Changes saved locally.');
+			.addCase(syncCartWithServer.rejected, (state) => {
+				// Server sync failed, try to restore from localStorage backup
+				try {
+					const backup = localStorage.getItem(CART_STORAGE_KEY);
+					if (backup) {
+						state.confirmedOrder = JSON.parse(backup);
+					}
+				} catch (error) {
+					console.warn('Failed to restore from localStorage:', error);
+				}
+			})
+			// Add cases for fetchExistingOrder
+			.addCase(fetchExistingOrder.fulfilled, (state, action) => {
+				state.confirmedOrder = action.payload;
 			});
 	},
 });

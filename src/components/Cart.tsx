@@ -1,105 +1,83 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-import { removeMeal, syncCartWithServer, CartMeal } from "../store/mealSlice";
+import { addMeal, removeMeal } from "../store/mealSlice";
 import { useAppDispatch } from "../hooks/useAppDispatch";
-import ConfirmedOrderPane from "./ConfirmedOrderPane";
 
 const Cart: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { items } = useSelector((state: RootState) => state.meal);
-  const [confirmedOrder, setConfirmedOrder] = useState<CartMeal[]>([]);
-  const [showConfirmedPane, setShowConfirmedPane] = useState(false);
+  const { items, confirmedOrder } = useSelector((state: RootState) => state.meal);
 
-  useEffect(() => {
-    const savedOrder = localStorage.getItem('confirmed_order');
-    if (savedOrder) {
-      const parsedOrder = JSON.parse(savedOrder);
-      setConfirmedOrder(parsedOrder);
-      setShowConfirmedPane(true);
-    } else {
-      setShowConfirmedPane(false);
-    }
-  }, [items]); // Re-run when items change (cart updates)
+  const handleEdit = () => {
+    // Move confirmed items back to cart
+    confirmedOrder.forEach(item => {
+      dispatch(addMeal(item));
+    });
+  };
 
-  // Sync active cart with server whenever items change
-  useEffect(() => {
-    if (items.length > 0) {
-      dispatch(syncCartWithServer(items));
-    }
-  }, [items, dispatch]);
-
-  // Show confirmed order pane if it's active
-  if (showConfirmedPane && confirmedOrder.length > 0) {
-    return <ConfirmedOrderPane order={confirmedOrder} />;
-  }
-
-  // Show cart UI if there's no confirmed order
-  if (!showConfirmedPane) {
+  // Show confirmed order if it exists
+  if (confirmedOrder.length > 0) {
     return (
       <div className="h-full flex flex-col p-4">
-        <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Your Confirmed Order</h2>
+          <button
+            className="px-4 py-2 text-blue-600 rounded-lg hover:bg-blue-50 active:bg-blue-100 touch-manipulation border border-blue-600"
+            onClick={handleEdit}
+          >
+            Edit Order
+          </button>
+        </div>
         <div className="flex-1 overflow-y-auto">
-          {items.length === 0 ? (
-            <p className="text-gray-500">No meals in your cart</p>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 mb-2">
-                Your order is automatically saved locally and synced with the server
-              </p>
-              <ul className="space-y-3">
-                {items.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
-                  >
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-500">{item.category}</p>
-                    </div>
-                    <button
-                      className="px-3 py-1 text-red-600 rounded-full hover:bg-red-50 active:bg-red-100 touch-manipulation"
-                      onClick={() => dispatch(removeMeal(item.name))}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+          <ul className="space-y-3">
+            {confirmedOrder.map((item, index) => (
+              <li
+                key={index}
+                className="p-3 bg-gray-50 rounded-lg shadow-sm"
+              >
+                <p className="font-medium">{item.name}</p>
+                <p className="text-sm text-gray-500">{item.category}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     );
   }
 
-  // If there's both a confirmed order and active items, we're in edit mode
+  // Show cart UI if no confirmed order
   return (
     <div className="h-full flex flex-col p-4">
-      <h2 className="text-xl font-semibold mb-4">Edit Your Order</h2>
+      <h2 className="text-xl font-semibold mb-4">Your Cart</h2>
       <div className="flex-1 overflow-y-auto">
-        <p className="text-sm text-gray-600 mb-2">
-          Make your changes and confirm to update your order
-        </p>
-        <ul className="space-y-3">
-          {items.map((item, index) => (
-            <li
-              key={index}
-              className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
-            >
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-gray-500">{item.category}</p>
-              </div>
-              <button
-                className="px-3 py-1 text-red-600 rounded-full hover:bg-red-50 active:bg-red-100 touch-manipulation"
-                onClick={() => dispatch(removeMeal(item.name))}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
+        {items.length === 0 ? (
+          <p className="text-gray-500">No meals in your cart</p>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600 mb-2">
+              Your order is automatically synced with the server
+            </p>
+            <ul className="space-y-3">
+              {items.map((item, index) => (
+                <li
+                  key={index}
+                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
+                >
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-500">{item.category}</p>
+                  </div>
+                  <button
+                    className="px-3 py-1 text-red-600 rounded-full hover:bg-red-50 active:bg-red-100 touch-manipulation"
+                    onClick={() => dispatch(removeMeal(item.name))}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );

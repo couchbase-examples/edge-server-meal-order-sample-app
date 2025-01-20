@@ -8,6 +8,8 @@ import LeftSideBar from "./components/LeftSideBar";
 import "./index.css";
 import BusinessMealPage from "./components/businessMealPage";
 import { getOrCreateSeatId } from "./utils/createSeatId";
+import { useAppDispatch } from "./hooks/useAppDispatch";
+import { fetchExistingOrder } from "./store/mealSlice";
 
 const couchbaseTheme = createTheme({
 	palette: {
@@ -43,6 +45,14 @@ export default function App() {
 	// if open => 240px, if icon => 64px
 	// main content shifts accordingly to avoid overlap.
 	const sidebarWidth = isSidebarOpen ? 240 : 64;
+
+	const dispatch = useAppDispatch();
+	const seatId = getOrCreateSeatId();
+
+	// Fetch existing order on app load
+	useEffect(() => {
+		dispatch(fetchExistingOrder(seatId));
+	}, [dispatch, seatId]);
 
 	return (
 		<ThemeProvider theme={couchbaseTheme}>

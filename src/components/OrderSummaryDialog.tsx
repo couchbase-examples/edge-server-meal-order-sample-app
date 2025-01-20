@@ -7,11 +7,11 @@ import {
 	DialogContent,
 	DialogTitle,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, store } from "../store";
 import { updateBusinessInventory } from "../store/inventorySlice";
-import { CartMeal, resetOrder } from "../store/mealSlice";
+import { syncCartWithServer } from "../store/mealSlice";
 import { getOrCreateSeatId } from "../utils/createSeatId";
 
 interface OrderSummaryDialogProps {
@@ -36,14 +36,6 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		setOpen(false);
 	};
 
-	const [isUpdate, setIsUpdate] = useState(false);
-
-	// Check if this is an update to an existing order
-	useEffect(() => {
-		const confirmedOrder = localStorage.getItem('confirmed_order');
-		setIsUpdate(!!confirmedOrder);
-	}, []);
-
 	const handleConfirm = async () => {
 		try {
 			const formattedItems = items.map((item) => ({
@@ -59,25 +51,10 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 			);
 
 			if (updateBusinessInventory.fulfilled.match(resultAction)) {
-				// Get existing confirmed order
-				const existingOrderStr = localStorage.getItem('confirmed_order');
-				const existingOrder: CartMeal[] = existingOrderStr ? JSON.parse(existingOrderStr) : [];
+				// Sync with server to update confirmed order
+				await dispatch(syncCartWithServer(items));
 				
-				if (isUpdate) {
-					// Update only the items that are being modified
-					const updatedOrder = existingOrder.map((existingItem: CartMeal) => {
-						// Find if this item is being updated
-						const updatedItem = items.find(item => item.category === existingItem.category);
-						return updatedItem || existingItem;
-					});
-					localStorage.setItem('confirmed_order', JSON.stringify(updatedOrder));
-				} else {
-					// For new orders, just save the items
-					localStorage.setItem('confirmed_order', JSON.stringify(items));
-				}
-				
-				// Reset the order form
-				dispatch(resetOrder());
+				// Close dialog
 				setOpen(false);
 				onOrderSuccess();
 			} else {
@@ -88,32 +65,23 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		}
 	};
 
-	const handleReset = () => {
-		dispatch(resetOrder());
-	};
-
 	if (items.length === 0) {
 		return null;
 	}
 
 	return (
 		<div className="my-4 flex justify-end">
-			<div>
-				<Button
-					variant="contained"
-					color="primary"
-					onClick={handleOpen}
-					style={{ marginRight: "8px" }}
-				>
-					Confirm Selection
-				</Button>
-				<Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
-					Reset
-				</Button>
-			</div>
+			<Button
+				variant="contained"
+				color="primary"
+				onClick={handleOpen}
+				style={{ marginRight: "8px" }}
+			>
+				Confirm Selection
+			</Button>
 
 			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-				<DialogTitle>{isUpdate ? "Update Order" : "Order Summary"}</DialogTitle>
+				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error">{error}</Alert>}
 					{items.map((item, idx) => (
@@ -144,8 +112,6 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 					>
 						{status === "loading" ? (
 							<CircularProgress size={24} />
-						) : isUpdate ? (
-							"Update Order"
 						) : (
 							"Confirm Order"
 						)}
