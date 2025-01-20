@@ -100,7 +100,7 @@ function BusinessMealPage() {
 							}
               ${
 								isSelected
-									? "border-4 border-green-500"
+									? "border-4 border-[#EA2328]"
 									: "border border-gray-200"
 							}
             `;
@@ -129,7 +129,7 @@ function BusinessMealPage() {
 									<div className="absolute top-2 right-2">
 										<CheckCircleIcon
 											fontSize="small"
-											className="text-green-500"
+											className="text-[#EA2328]"
 										/>
 									</div>
 								)}

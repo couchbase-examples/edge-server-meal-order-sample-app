@@ -22,7 +22,7 @@ const Cart: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Your Confirmed Order</h2>
           <button
-            className="px-4 py-2 text-blue-600 rounded-lg hover:bg-blue-50 active:bg-blue-100 touch-manipulation border border-blue-600"
+            className="px-4 py-2 text-[#EA2328] rounded-lg hover:bg-red-50 active:bg-red-100 touch-manipulation border border-[#EA2328]"
             onClick={handleEdit}
           >
             Edit Order
@@ -35,7 +35,7 @@ const Cart: React.FC = () => {
                 key={index}
                 className="p-3 bg-gray-50 rounded-lg shadow-sm"
               >
-                <p className="font-medium">{item.name}</p>
+                <p className="font-medium text-gray-800">{item.name}</p>
                 <p className="text-sm text-gray-500">{item.category}</p>
               </li>
             ))}
@@ -64,8 +64,8 @@ const Cart: React.FC = () => {
                   className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
                 >
                   <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-500">{item.category}</p>
+                <p className="font-medium text-gray-800">{item.name}</p>
+                <p className="text-sm text-gray-500">{item.category}</p>
                   </div>
                   <button
                     className="px-3 py-1 text-red-600 rounded-full hover:bg-red-50 active:bg-red-100 touch-manipulation"
