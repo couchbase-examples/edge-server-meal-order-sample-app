@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
 import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
@@ -14,6 +14,20 @@ import {
 import { fetchEconomyInventory } from "../store/economyInventorySlice";
 
 function BusinessMealPage() {
+	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+
+	useEffect(() => {
+		const handleOrderStateChange = (event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>) => {
+			setIsOrderConfirmed(event.detail.isOrderConfirmed);
+			setIsEditing(event.detail.isEditing);
+		};
+
+		window.addEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		return () => {
+			window.removeEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		};
+	}, []);
 	const dispatch = useAppDispatch();
 	const { seatClass } = useParams();
 	// Determine which slice to use
@@ -60,7 +74,7 @@ function BusinessMealPage() {
 		mealId: string,
 		inventoryCount: number
 	) => {
-		if (inventoryCount <= 0) {
+		if (inventoryCount <= 0 || (isOrderConfirmed && !isEditing)) {
 			return;
 		}
 		// If already selected, remove it; otherwise add it.
@@ -136,7 +150,7 @@ function BusinessMealPage() {
 						return (
 							<Card
 								key={item.mealid}
-								className={cardClass}
+								className={`${cardClass} ${(isOrderConfirmed && !isEditing) ? 'pointer-events-none opacity-50' : ''}`}
 								style={{
 									// If selected, the border color is the theme's primary color
 									borderColor: isSelected

@@ -1,13 +1,18 @@
 import React, { useState } from "react";
+
+interface InventoryItem {
+  [key: string]: {
+    seatsOrdered: {
+      [seatId: string]: number;
+    };
+    startingInventory: number;
+  };
+}
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
 
-// Business
-import { resetOrder as resetBusinessOrder } from "../store/mealSlice";
+// Business and Economy inventory actions
 import { updateBusinessInventory } from "../store/inventorySlice";
-
-// Economy
-import { resetEconomyOrder } from "../store/economyMealSlice";
 import { updateEconomyInventory } from "../store/economyInventorySlice";
 
 import {
@@ -42,8 +47,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		isEconomy ? state.economyInventory : state.businessInventory
 	);
 
-	// Decide which actions to dispatch
-	const resetAction = isEconomy ? resetEconomyOrder : resetBusinessOrder;
+	// Decide which action to dispatch
 	const updateInventoryAction = isEconomy
 		? updateEconomyInventory
 		: updateBusinessInventory;
@@ -66,7 +70,102 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				category: item.category,
 			}));
 
-			// Dispatch the correct update action (economy or business)
+			// Get current inventory to check for existing orders
+			const currentInventory = await fetch(
+				`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!currentInventory.ok) {
+				throw new Error("Failed to fetch current inventory");
+			}
+
+			let inventoryData = await currentInventory.json();
+
+			// Remove all existing orders for this user
+			const categories = ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'];
+			let hasExistingOrders = false;
+
+			// First, find all existing orders
+			categories.forEach(category => {
+				if (inventoryData[category]) {
+					inventoryData[category].forEach((item: InventoryItem) => {
+						const mealKey = Object.keys(item)[0];
+						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
+							hasExistingOrders = true;
+						}
+					});
+				}
+			});
+
+			// If there are existing orders, remove them first
+			if (hasExistingOrders) {
+				// Create a new inventory object with removed orders
+				const updatedInventory = { ...inventoryData };
+				categories.forEach(category => {
+					if (updatedInventory[category]) {
+						updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+							const mealKey = Object.keys(item)[0];
+							if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
+								const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+								delete newSeatsOrdered[seatUserId];
+								return {
+									[mealKey]: {
+										...item[mealKey],
+										seatsOrdered: newSeatsOrdered
+									}
+								};
+							}
+							return item;
+						});
+					}
+				});
+
+				// Update inventory with removed orders
+				const removeResponse = await fetch(
+					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory?rev=${inventoryData._rev}`,
+					{
+						method: "PUT",
+						headers: {
+							Authorization: "Basic " + btoa("seatuser:password"),
+							"Content-Type": "application/json",
+						},
+						credentials: "include",
+						body: JSON.stringify(updatedInventory),
+					}
+				);
+
+				if (!removeResponse.ok) {
+					throw new Error("Failed to remove old orders");
+				}
+
+				// Get fresh inventory data after removing orders
+				const freshInventory = await fetch(
+					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
+					{
+						headers: {
+							Authorization: "Basic " + btoa("seatuser:password"),
+							"Content-Type": "application/json",
+						},
+						credentials: "include",
+					}
+				);
+
+				if (!freshInventory.ok) {
+					throw new Error("Failed to fetch updated inventory");
+				}
+
+				inventoryData = await freshInventory.json();
+			}
+
+
+			// Now add new orders
 			const resultAction = await dispatch(
 				updateInventoryAction({
 					items: formattedItems,
@@ -76,7 +175,6 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 			// If successful
 			if (updateInventoryAction.fulfilled.match(resultAction)) {
-				dispatch(resetAction());
 				setOpen(false);
 				onOrderSuccess();
 			} else {
@@ -88,31 +186,32 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		}
 	};
 
-	const handleReset = () => {
-		dispatch(resetAction());
-	};
-
 	if (items.length === 0) {
 		return null;
 	}
 
 	return (
-		<div className="my-4 flex justify-end">
-			<div>
-				<Button
-					variant="contained"
-					color="primary"
-					onClick={handleOpen}
-					style={{ marginRight: "8px" }}
-				>
-					Confirm Selection
-				</Button>
-				<Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
-					Reset
-				</Button>
-			</div>
+		<div>
+			<Button
+				variant="contained"
+				color="primary"
+				onClick={handleOpen}
+				size="small"
+			>
+				Confirm Order
+			</Button>
 
-			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+			<Dialog 
+				open={open} 
+				onClose={handleClose} 
+				fullWidth 
+				maxWidth="sm"
+				PaperProps={{
+					style: {
+						borderRadius: '8px'
+					}
+				}}
+			>
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error">{error}</Alert>}
