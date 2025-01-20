@@ -1,59 +1,51 @@
-import { useState, useEffect } from "react";
-import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
-import { CssBaseline } from "@mui/material";
+/* src/App.tsx */
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import {
+	ThemeProvider,
+	useMediaQuery,
+	CssBaseline,
+} from "@mui/material";
 import Navbar from "./components/Navbar";
+import LeftSideBar from "./components/LeftSideBar";
 import OrderSummary from "./components/OrderSummary";
 import Cart from "./components/Cart";
-import LeftSideBar from "./components/LeftSideBar";
+import { businessTheme, economyTheme } from "./themes";
+import { getOrCreateSeatId } from "./utils/createSeatId";
 import "./index.css";
 import BusinessMealPage from "./components/businessMealPage";
-import { getOrCreateSeatId } from "./utils/createSeatId";
-
-const couchbaseTheme = createTheme({
-	palette: {
-		primary: { main: "#EA2328" },
-		secondary: { main: "#00BCE4" },
-	},
-	typography: {
-		fontFamily: ["Arial", "sans-serif"].join(","),
-	},
-});
 
 export default function App() {
-	// Seat ID logic just as a placeholder
+	// Read the seatClass from the URL (possible "business" or "economy")
+	const { seatClass } = useParams();
+
+	// Decide which theme to use
+	const selectedTheme = seatClass === "economy" ? economyTheme : businessTheme;
+
 	getOrCreateSeatId();
 
-	const isDesktop = useMediaQuery(couchbaseTheme.breakpoints.up("md")); // ≥768px
-
-	// Single state: isSidebarOpen => whether the sidebar is fully expanded (true) or icon-only (false)
+	const isDesktop = useMediaQuery(selectedTheme.breakpoints.up("md"));
 	const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);
 
-	// Whenever screen size changes from mobile to desktop or vice versa,
-	// reset the sidebar to open if it's desktop, or collapsed if it's mobile.
 	useEffect(() => {
 		setIsSidebarOpen(isDesktop);
 	}, [isDesktop]);
 
-	// Toggle for our hamburger button
 	const handleSidebarToggle = () => {
 		setIsSidebarOpen((prev) => !prev);
 	};
 
-	// Decide how wide the sidebar is
-	// if open => 240px, if icon => 64px
-	// main content shifts accordingly to avoid overlap.
 	const sidebarWidth = isSidebarOpen ? 240 : 64;
 
 	return (
-		<ThemeProvider theme={couchbaseTheme}>
+		<ThemeProvider theme={selectedTheme}>
 			<CssBaseline />
 			<div className="flex flex-col h-screen">
-				{/* Single hamburger in Navbar */}
 				<Navbar onMenuClick={handleSidebarToggle} />
 
 				{/* Main container (under the 45px navbar) */}
 				<div className="flex flex-1 h-[calc(100vh-45px)]">
-					{/* Left SideBar (always "permanent" so it does NOT overlay) */}
+          {/* Left SideBar (always "permanent" so it does NOT overlay) */}
 					<LeftSideBar isSidebarOpen={isSidebarOpen} />
 
 					{/* Main content area: shift right so it’s never hidden */}
