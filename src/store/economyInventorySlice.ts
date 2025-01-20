@@ -1,8 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-
-/** If your BusinessInventoryDoc type is the same shape as economy,
-rename or copy as EconomyInventoryDoc. For now, we reuse the same. **/
-import { BusinessInventoryDoc } from "../types";
+import { BusinessInventoryDoc, InventoryItem } from "../types";
 
 interface EconomyInventoryState {
 	data: BusinessInventoryDoc | null;
@@ -70,15 +67,38 @@ export const updateEconomyInventory = createAsyncThunk(
 			const currentInventory = await getResponse.json();
 			const revId = currentInventory._rev;
 
-			// 2) update seatsOrdered
+			// Create updated inventory object
 			const updatedInventory = { ...currentInventory };
 
+			// First, remove all existing orders for this user from the categories being updated
+			const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
+			
+			Object.keys(updatedInventory).forEach(category => {
+				if (categoriesToUpdate.has(category) && Array.isArray(updatedInventory[category])) {
+					updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+						const mealKey = Object.keys(item)[0];
+						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+							const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+							delete newSeatsOrdered[payload.seatUserId];
+							return {
+								[mealKey]: {
+									...item[mealKey],
+									seatsOrdered: newSeatsOrdered
+								}
+							};
+						}
+						return item;
+					});
+				}
+			});
+
+			// Then add the new orders
 			payload.items.forEach((item) => {
 				const category = item.category.toLowerCase();
 				const categoryItems = updatedInventory[category];
 
 				const mealItem = categoryItems.find(
-					(mealId: string) => Object.keys(mealId)[0] === item.id
+					(mealId: InventoryItem) => Object.keys(mealId)[0] === item.id
 				);
 				if (mealItem) {
 					const mealKey = Object.keys(mealItem)[0];
