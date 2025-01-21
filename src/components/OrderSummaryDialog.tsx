@@ -10,6 +10,7 @@ interface InventoryItem {
 }
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
+import { useTheme } from "@mui/material/styles";
 
 // Business and Economy inventory actions
 import { updateBusinessInventory } from "../store/inventorySlice";
@@ -34,6 +35,7 @@ interface OrderSummaryDialogProps {
 const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
 }) => {
+	const theme = useTheme();
 	const dispatch = useDispatch<typeof store.dispatch>();
 	const { seatClass } = useParams();
 
@@ -192,14 +194,13 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 	return (
 		<div>
-			<Button
-				variant="contained"
-				color="primary"
+			<button
 				onClick={handleOpen}
-				size="small"
+				className="w-full px-4 py-2 text-white rounded hover:bg-opacity-90 transition-colors"
+				style={{ backgroundColor: theme.palette.primary.main }}
 			>
 				Confirm Order
-			</Button>
+			</button>
 
 			<Dialog 
 				open={open} 

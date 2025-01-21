@@ -10,12 +10,14 @@ import OrderSummaryDialog from "./OrderSummaryDialog";
 interface ConfirmedOrderProps {
   onEditOrder: () => void;
   onEditComplete: () => void;
+  onOrderSuccess: () => void;
   isEditing: boolean;
 }
 
 const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({ 
   onEditOrder,
   onEditComplete,
+  onOrderSuccess,
   isEditing 
 }) => {
   const dispatch = useDispatch();
@@ -27,15 +29,11 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
     isEconomy ? state.economyMeal : state.businessMeal
   );
 
-  const handleSaveOrder = () => {
-    onEditComplete();
-  };
-
   return (
     <div className="h-full flex flex-col p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Confirmed Order</h2>
-        {!isEditing ? (
+        {!isEditing && (
           <Button
             variant="outlined"
             color="primary"
@@ -44,10 +42,6 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
           >
             Edit Order
           </Button>
-        ) : (
-          <div className="flex gap-2">
-            <OrderSummaryDialog onOrderSuccess={handleSaveOrder} />
-          </div>
         )}
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -80,6 +74,21 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
           </ul>
         )}
       </div>
+      {isEditing && (
+        <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 mt-4">
+          <div className="flex gap-2">
+            <button 
+              className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+              onClick={onEditComplete}
+            >
+              Cancel
+            </button>
+            <div className="flex-1">
+              <OrderSummaryDialog onOrderSuccess={onOrderSuccess} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
