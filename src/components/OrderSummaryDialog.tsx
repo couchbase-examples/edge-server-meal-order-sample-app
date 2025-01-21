@@ -1,18 +1,7 @@
 import React, { useState } from "react";
-
-interface InventoryItem {
-  [key: string]: {
-    seatsOrdered: {
-      [seatId: string]: number;
-    };
-    startingInventory: number;
-  };
-}
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
 import { useTheme } from "@mui/material/styles";
-
-// Business and Economy inventory actions
 import { updateBusinessInventory } from "../store/inventorySlice";
 import { updateEconomyInventory } from "../store/economyInventorySlice";
 
@@ -66,126 +55,31 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	};
 
 	const handleConfirm = async () => {
-		try {
-			const formattedItems = items.map((item) => ({
-				id: item.mealId,
-				category: item.category,
-			}));
+			try {
+				const formattedItems = items.map((item) => ({
+					id: item.mealId,
+					category: item.category,
+				}));
 
-			// Get current inventory to check for existing orders
-			const currentInventory = await fetch(
-				`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
-				{
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-				}
-			);
-
-			if (!currentInventory.ok) {
-				throw new Error("Failed to fetch current inventory");
-			}
-
-			let inventoryData = await currentInventory.json();
-
-			// Remove all existing orders for this user
-			const categories = ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'];
-			let hasExistingOrders = false;
-
-			// First, find all existing orders
-			categories.forEach(category => {
-				if (inventoryData[category]) {
-					inventoryData[category].forEach((item: InventoryItem) => {
-						const mealKey = Object.keys(item)[0];
-						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
-							hasExistingOrders = true;
-						}
-					});
-				}
-			});
-
-			// If there are existing orders, remove them first
-			if (hasExistingOrders) {
-				// Create a new inventory object with removed orders
-				const updatedInventory = { ...inventoryData };
-				categories.forEach(category => {
-					if (updatedInventory[category]) {
-						updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
-							const mealKey = Object.keys(item)[0];
-							if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
-								const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
-								delete newSeatsOrdered[seatUserId];
-								return {
-									[mealKey]: {
-										...item[mealKey],
-										seatsOrdered: newSeatsOrdered
-									}
-								};
-							}
-							return item;
-						});
-					}
-				});
-
-				// Update inventory with removed orders
-				const removeResponse = await fetch(
-					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory?rev=${inventoryData._rev}`,
-					{
-						method: "PUT",
-						headers: {
-							Authorization: "Basic " + btoa("seatuser:password"),
-							"Content-Type": "application/json",
-						},
-						credentials: "include",
-						body: JSON.stringify(updatedInventory),
-					}
+				// Update inventory using Redux action
+				const resultAction = await dispatch(
+					updateInventoryAction({
+						items: formattedItems,
+						seatUserId,
+					})
 				);
 
-				if (!removeResponse.ok) {
-					throw new Error("Failed to remove old orders");
+				// If successful
+				if (updateInventoryAction.fulfilled.match(resultAction)) {
+					setOpen(false);
+					onOrderSuccess();
+				} else {
+					// If there's an error, throw it
+					throw resultAction.payload || resultAction.error;
 				}
-
-				// Get fresh inventory data after removing orders
-				const freshInventory = await fetch(
-					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
-					{
-						headers: {
-							Authorization: "Basic " + btoa("seatuser:password"),
-							"Content-Type": "application/json",
-						},
-						credentials: "include",
-					}
-				);
-
-				if (!freshInventory.ok) {
-					throw new Error("Failed to fetch updated inventory");
-				}
-
-				inventoryData = await freshInventory.json();
+			} catch (error) {
+				console.error("Failed to update inventory:", error);
 			}
-
-
-			// Now add new orders
-			const resultAction = await dispatch(
-				updateInventoryAction({
-					items: formattedItems,
-					seatUserId,
-				})
-			);
-
-			// If successful
-			if (updateInventoryAction.fulfilled.match(resultAction)) {
-				setOpen(false);
-				onOrderSuccess();
-			} else {
-				// If there's an error, throw it
-				throw resultAction.payload || resultAction.error;
-			}
-		} catch (error) {
-			console.error("Failed to update inventory:", error);
-		}
 	};
 
 	if (items.length === 0) {
