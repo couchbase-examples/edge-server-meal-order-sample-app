@@ -74,7 +74,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
           </ul>
         )}
       </div>
-      {isEditing && (
+      {isEditing && items.length > 0 && (
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 mt-4">
           <div className="flex gap-2">
             <button 
