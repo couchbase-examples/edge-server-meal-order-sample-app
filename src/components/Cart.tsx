@@ -160,7 +160,7 @@ const Cart: React.FC = () => {
                     className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
                     onClick={() => dispatch(isEconomy ? resetEconomyOrder() : resetOrder())}
                   >
-                    Reset Cart
+                    Reset
                   </button>
                 )}
                 <div className={!isOrderConfirmed && !isEditing ? "flex-1" : "w-full"}>

@@ -1,0 +1,1851 @@
+File: ./App.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+/* src/App.tsx */
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import {
+	ThemeProvider,
+	useMediaQuery,
+	CssBaseline,
+} from "@mui/material";
+import Navbar from "./components/Navbar";
+import LeftSideBar from "./components/LeftSideBar";
+import Cart from "./components/Cart";
+import { businessTheme, economyTheme } from "./themes";
+import { getOrCreateSeatId } from "./utils/createSeatId";
+import "./index.css";
+import BusinessMealPage from "./components/businessMealPage";
+
+export default function App() {
+	// Read the seatClass from the URL (possible "business" or "economy")
+	const { seatClass } = useParams();
+
+	// Decide which theme to use
+	const selectedTheme = seatClass === "economy" ? economyTheme : businessTheme;
+
+	getOrCreateSeatId();
+
+	const isDesktop = useMediaQuery(selectedTheme.breakpoints.up("md"));
+	const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);
+
+	useEffect(() => {
+		setIsSidebarOpen(isDesktop);
+	}, [isDesktop]);
+
+	const handleSidebarToggle = () => {
+		setIsSidebarOpen((prev) => !prev);
+	};
+
+	const sidebarWidth = isSidebarOpen ? 240 : 64;
+
+	return (
+		<ThemeProvider theme={selectedTheme}>
+			<CssBaseline />
+			<div className="flex flex-col h-screen">
+				<Navbar onMenuClick={handleSidebarToggle} />
+
+				{/* Main container (under the 45px navbar) */}
+				<div className="flex flex-1 h-[calc(100vh-45px)]">
+          {/* Left SideBar (always "permanent" so it does NOT overlay) */}
+					<LeftSideBar isSidebarOpen={isSidebarOpen} />
+
+					{/* Main content area: shift right so it’s never hidden */}
+					<div
+						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
+						style={{ marginLeft: `${sidebarWidth}px` }}
+					>
+						<main className="flex-1">
+							<div className="p-2 sm:p-4 mt-8">
+								<BusinessMealPage />
+							</div>
+						</main>
+					</div>
+
+					{/* Right Cart (desktop only) */}
+					<aside className="w-72 bg-white border-l border-gray-200">
+						<Cart />
+					</aside>
+				</div>
+			</div>
+		</ThemeProvider>
+	);
+}
+File: ./main.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import { store } from "./store/index";
+import App from "./App";
+import "./index.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+	<BrowserRouter>
+		<React.StrictMode>
+			<Provider store={store}>
+				<Routes>
+					<Route path=":seatClass/" element={<App />} />
+					<Route path="*" element={<App />} />
+				</Routes>
+			</Provider>
+		</React.StrictMode>
+	</BrowserRouter>
+);
+File: ./types/index.d.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+export interface MealItem {
+    mealid: string;
+    meal: string;
+    description: string;
+    assetid: string;
+  }
+  
+  export interface MealCategory {
+    breakfast: MealItem[];
+    lunch: MealItem[];
+    dinner: MealItem[];
+    dessert: MealItem[];
+    beverage: MealItem[];
+    alcohol: MealItem[];
+  }
+  
+  // Shape of the "businessmeal" document
+  export interface BusinessMealDoc extends MealCategory {
+    _id: string;
+    _rev: string;
+    type: string;         // "businessmeal"
+    flightno: string;
+    leg: string;
+    aircraft: string;
+  }
+  
+  // For "businessinventory" data
+  export interface InventoryItem {
+    // Example: {"businessmeal1": {seatsOrdered: {}, startingInventory: 10}}
+    [mealId: string]: {
+      seatsOrdered: Record<string, unknown>; // or define the shape if known
+      startingInventory: number;
+    };
+  }
+  
+  export interface InventoryCategory {
+    breakfast: InventoryItem[];
+    lunch: InventoryItem[];
+    dinner: InventoryItem[];
+    dessert: InventoryItem[];
+    beverage: InventoryItem[];
+    alcohol: InventoryItem[];
+  }
+  
+  // Shape of the "businessinventory" document
+  export interface BusinessInventoryDoc extends InventoryCategory {
+    _id: string;
+    _rev: string;
+    type: string;           // "businessinventory"
+    flightno: string;
+    leg: string;
+    aircraft: string;
+  }File: ./utils/createSeatId.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+export function getOrCreateSeatId() {
+    let seatId = localStorage.getItem("seatId");
+    if (!seatId) {
+      // Generate a random seatId
+      seatId = `seat-${Math.random().toString(36).slice(2, 11)}`;
+      // Store it so the user can retain the seatId in future visits
+      localStorage.setItem("seatId", seatId);
+    }
+    return seatId;
+  }File: ./components/Cart.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { removeMeal, setItems } from "../store/mealSlice";
+import { removeEconomyMeal, setEconomyItems } from "../store/economyMealSlice";
+import { useTheme } from "@mui/material/styles";
+import { RootState } from "../store";
+import { useParams } from "react-router-dom";
+import ConfirmedOrder from "./ConfirmedOrder";
+import OrderSummaryDialog from "./OrderSummaryDialog";
+import { Snackbar, Alert } from "@mui/material";
+
+const Cart: React.FC = () => {
+  const dispatch = useDispatch();
+  const theme = useTheme();
+  const { seatClass } = useParams();
+  const isEconomy = seatClass === "economy";
+  const [isOrderConfirmed, setIsOrderConfirmed] = useState(() => {
+    const saved = localStorage.getItem(`isOrderConfirmed-${seatClass}`);
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    // Pass both order confirmation and edit mode state to parent
+    const event = new CustomEvent('orderStateChange', { 
+      detail: { 
+        isOrderConfirmed,
+        isEditing 
+      } 
+    });
+    window.dispatchEvent(event);
+  }, [isOrderConfirmed, isEditing]);
+
+  const handleEditStart = () => {
+    setIsEditing(true);
+  };
+
+  const handleEditComplete = () => {
+    setIsEditing(false);
+  };
+
+  useEffect(() => {
+    localStorage.setItem(`isOrderConfirmed-${seatClass}`, JSON.stringify(isOrderConfirmed));
+  }, [isOrderConfirmed, seatClass]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  // Load saved items from localStorage
+  useEffect(() => {
+    const savedItems = localStorage.getItem(`cartItems-${seatClass}`);
+    if (savedItems) {
+      const parsedItems = JSON.parse(savedItems);
+      if (isEconomy) {
+        dispatch(setEconomyItems(parsedItems));
+      } else {
+        dispatch(setItems(parsedItems));
+      }
+    }
+  }, [dispatch, isEconomy, seatClass]);
+
+  const { items } = useSelector((state: RootState) => 
+    isEconomy ? state.economyMeal : state.businessMeal
+  );
+
+  // Save items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(`cartItems-${seatClass}`, JSON.stringify(items));
+  }, [items, seatClass]);
+
+  const handleOrderSuccess = () => {
+    setIsOrderConfirmed(true);
+    setSnackbarOpen(true);
+    // Reset edit mode in ConfirmedOrder by remounting it
+    setKey(prev => prev + 1);
+  };
+
+  const [key, setKey] = useState(0);
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  return (
+    <>
+      {!isOrderConfirmed ? (
+        <div className="h-full flex flex-col p-4 mt-12">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Cart</h2>
+            {items.length > 0 && (
+              <OrderSummaryDialog onOrderSuccess={handleOrderSuccess} />
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {items.length === 0 ? (
+              <p className="text-gray-500">No meals in your cart</p>
+            ) : (
+              <ul className="space-y-3">
+                {items.map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
+                  >
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-gray-500">{item.category}</p>
+                    </div>
+                    <button
+                      className="px-3 py-1 rounded-full hover:bg-opacity-10 active:bg-opacity-20 touch-manipulation"
+                      style={{
+                        color: theme.palette.primary.main,
+                      }}
+                      onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeMeal(item.name))}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="h-full mt-12">
+          <ConfirmedOrder 
+            key={key} 
+            onEditOrder={handleEditStart}
+            onEditComplete={handleEditComplete}
+            isEditing={isEditing}
+          />
+        </div>
+      )}
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          Your order has been placed successfully! 🎉
+        </Alert>
+      </Snackbar>
+    </>
+  );
+};
+
+export default Cart;
+File: ./components/Navbar.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { AppBar, Toolbar, IconButton } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+
+interface NavbarProps {
+	onMenuClick: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
+	return (
+		<AppBar
+			position="fixed"
+			sx={{
+				height: "45px",
+				zIndex: (theme) => theme.zIndex.drawer + 1,
+			}}
+		>
+			<Toolbar variant="dense" sx={{ minHeight: "45px !important" }}>
+				{/* Single hamburger for all screen sizes */}
+				<IconButton
+					color="inherit"
+					aria-label="open drawer"
+					edge="start"
+					onClick={onMenuClick}
+					sx={{ mr: 2 }}
+				>
+					<MenuIcon />
+				</IconButton>
+
+				<div className="flex items-center">
+        <FlightTakeoffIcon className="mr-2" />
+        <span className="font-bold text-lg">American Airlines</span>
+      </div>
+      <ul className="ml-auto flex space-x-4">
+        <li>Home</li>
+        <li>Profile</li>
+      </ul>
+			</Toolbar>
+		</AppBar>
+	);
+}
+File: ./components/businessMealPage.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "../store";
+import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
+import { fetchBusinessInventory } from "../store/inventorySlice";
+import { Card, CardContent, Typography, useTheme } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useParams } from "react-router-dom";
+import {
+	addEconomyMeal,
+	fetchEconomyMeal,
+	removeEconomyMeal,
+} from "../store/economyMealSlice";
+import { fetchEconomyInventory } from "../store/economyInventorySlice";
+
+function BusinessMealPage() {
+	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+
+	useEffect(() => {
+		const handleOrderStateChange = (event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>) => {
+			setIsOrderConfirmed(event.detail.isOrderConfirmed);
+			setIsEditing(event.detail.isEditing);
+		};
+
+		window.addEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		return () => {
+			window.removeEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		};
+	}, []);
+	const dispatch = useAppDispatch();
+	const { seatClass } = useParams();
+	// Determine which slice to use
+	const isEconomy = seatClass === "economy";
+
+	// If economy => economyMeal, else => businessMeal
+	const mealState = useAppSelector((state) =>
+		isEconomy ? state.economyMeal : state.businessMeal
+	);
+	const inventoryState = useAppSelector((state) =>
+		isEconomy ? state.economyInventory : state.businessInventory
+	);
+	const theme = useTheme();
+
+	useEffect(() => {
+		if (isEconomy) {
+			dispatch(fetchEconomyMeal());
+			dispatch(fetchEconomyInventory());
+		} else {
+			dispatch(fetchBusinessMeal());
+			dispatch(fetchBusinessInventory());
+		}
+	}, [dispatch, isEconomy]);
+
+	if (mealState.status === "loading" || inventoryState.status === "loading") {
+		return <div>Loading...</div>;
+	}
+
+	if (!mealState.data || !inventoryState.data) {
+		return <div>No data available</div>;
+	}
+
+	const getImagePath = (assetId: string) => {
+		try {
+			return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
+		} catch {
+			return new URL(`../assets/images/default.png`, import.meta.url).href;
+		}
+	};
+
+	const handleCardClick = (
+		mealName: string,
+		categoryName: string,
+		mealId: string,
+		inventoryCount: number
+	) => {
+		if (inventoryCount <= 0 || (isOrderConfirmed && !isEditing)) {
+			return;
+		}
+		// If already selected, remove it; otherwise add it.
+		const isSelected = mealState.items.some((item) => item.name === mealName);
+		if (isSelected) {
+			if (isEconomy) dispatch(removeEconomyMeal(mealName));
+			else dispatch(removeMeal(mealName));
+		} else {
+			if (isEconomy)
+				dispatch(
+					addEconomyMeal({ name: mealName, category: categoryName, mealId })
+				);
+			else
+				dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
+		}
+	};
+
+	// From the data object
+	const { breakfast, lunch, dinner, dessert, beverage, alcohol } =
+		mealState.data;
+	const inventory = inventoryState.data;
+
+	// A helper to render each category
+	const renderMealCategory = (categoryName: string, items: any[]) => {
+		return (
+			<div className="w-full max-w-[2000px] mx-auto px-4">
+				<Typography variant="h5" className="font-bold px-2 pt-2">
+					{categoryName.toUpperCase()}
+				</Typography>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-2">
+					{items.map((item) => {
+						let matchedInventory: {
+							startingInventory: number;
+							seatsOrdered: Record<string, number>;
+						} = {
+							startingInventory: 0,
+							seatsOrdered: {},
+						};
+						const invArray = (inventory as any)[categoryName] || [];
+						invArray.forEach((invObj: any) => {
+							if (Object.keys(invObj)[0] === item.mealid) {
+								matchedInventory = invObj[item.mealid];
+							}
+						});
+						// Calculate number of orders
+						const orderedCount = Object.keys(
+							matchedInventory?.seatsOrdered || {}
+						).length;
+
+						// Calculate available count
+						const available =
+							(matchedInventory?.startingInventory || 0) - orderedCount;
+						const isSelected = mealState.items.some(
+							(cartItem) => cartItem.name === item.meal
+						);
+
+						// Style classes:
+						const isOutOfStock = available <= 0;
+						const cardClass = `
+              shadow-md transition-transform transform relative
+              ${
+								isOutOfStock
+									? "cursor-not-allowed grayscale hover:scale-100"
+									: "cursor-pointer hover:scale-105"
+							}
+              ${
+								isSelected
+									? "border-4 border-green-500"
+									: "border border-gray-200"
+							}
+            `;
+
+						return (
+							<Card
+								key={item.mealid}
+								className={`${cardClass} ${(isOrderConfirmed && !isEditing) ? 'pointer-events-none opacity-50' : ''}`}
+								style={{
+									// If selected, the border color is the theme's primary color
+									borderColor: isSelected
+										? theme.palette.primary.main
+										: "rgb(229 231 235)",
+								}}
+								onClick={() =>
+									handleCardClick(
+										item.meal,
+										categoryName,
+										item.mealid,
+										available
+									)
+								}
+								sx={{
+									"&:active": {
+										transform: "scale(0.98)",
+									},
+									touchAction: "manipulation",
+								}}
+							>
+								{/* Checkmark Icon for Selected Items */}
+								{isSelected && !isOutOfStock && (
+									<div className="absolute top-2 right-2">
+										<CheckCircleIcon fontSize="small" color="primary" />
+									</div>
+								)}
+								<CardContent className="p-3 sm:p-4">
+									<Typography variant="h6" className="text-base sm:text-lg">
+										{item.meal}
+									</Typography>
+									<Typography variant="body2" className="text-sm text-gray-600">
+										{item.description}
+									</Typography>
+									<div className="aspect-w-16 aspect-h-9 mt-2">
+										<img
+											src={getImagePath(item.assetid)}
+											alt={item.meal}
+											className="w-full h-full object-cover rounded"
+											loading="lazy"
+											onError={(e) => {
+												const target = e.target as HTMLImageElement;
+												target.src = getImagePath("default");
+											}}
+										/>
+									</div>
+									{isOutOfStock && (
+										<div className="mt-2 text-red-500 font-semibold text-sm">
+											Currently Unavailable
+										</div>
+									)}
+								</CardContent>
+							</Card>
+						);
+					})}
+				</div>
+			</div>
+		);
+	};
+
+	return (
+		<div className="p-2 sm:p-4">
+			{renderMealCategory("breakfast", breakfast)}
+			{renderMealCategory("lunch", lunch)}
+			{renderMealCategory("dinner", dinner)}
+			{renderMealCategory("dessert", dessert)}
+			{renderMealCategory("beverage", beverage)}
+			{renderMealCategory("alcohol", alcohol)}
+		</div>
+	);
+}
+
+export default BusinessMealPage;
+File: ./components/OrderSummaryDialog.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import React, { useState } from "react";
+
+interface InventoryItem {
+  [key: string]: {
+    seatsOrdered: {
+      [seatId: string]: number;
+    };
+    startingInventory: number;
+  };
+}
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, store } from "../store";
+
+// Business and Economy inventory actions
+import { updateBusinessInventory } from "../store/inventorySlice";
+import { updateEconomyInventory } from "../store/economyInventorySlice";
+
+import {
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	CircularProgress,
+	Alert,
+} from "@mui/material";
+import { getOrCreateSeatId } from "../utils/createSeatId";
+import { useParams } from "react-router-dom";
+
+interface OrderSummaryDialogProps {
+	onOrderSuccess: () => void;
+}
+
+const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
+	onOrderSuccess,
+}) => {
+	const dispatch = useDispatch<typeof store.dispatch>();
+	const { seatClass } = useParams();
+
+	const isEconomy = seatClass === "economy";
+
+	// Choose the correct slice based on isEconomy
+	const { items } = useSelector((state: RootState) =>
+		isEconomy ? state.economyMeal : state.businessMeal
+	);
+	const { status, error } = useSelector((state: RootState) =>
+		isEconomy ? state.economyInventory : state.businessInventory
+	);
+
+	// Decide which action to dispatch
+	const updateInventoryAction = isEconomy
+		? updateEconomyInventory
+		: updateBusinessInventory;
+
+	const seatUserId = getOrCreateSeatId();
+
+	const [open, setOpen] = useState(false);
+
+	const handleOpen = () => {
+		setOpen(true);
+	};
+	const handleClose = () => {
+		setOpen(false);
+	};
+
+	const handleConfirm = async () => {
+		try {
+			const formattedItems = items.map((item) => ({
+				id: item.mealId,
+				category: item.category,
+			}));
+
+			// Get current inventory to check for existing orders
+			const currentInventory = await fetch(
+				`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!currentInventory.ok) {
+				throw new Error("Failed to fetch current inventory");
+			}
+
+			let inventoryData = await currentInventory.json();
+
+			// Remove all existing orders for this user
+			const categories = ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'];
+			let hasExistingOrders = false;
+
+			// First, find all existing orders
+			categories.forEach(category => {
+				if (inventoryData[category]) {
+					inventoryData[category].forEach((item: InventoryItem) => {
+						const mealKey = Object.keys(item)[0];
+						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
+							hasExistingOrders = true;
+						}
+					});
+				}
+			});
+
+			// If there are existing orders, remove them first
+			if (hasExistingOrders) {
+				// Create a new inventory object with removed orders
+				const updatedInventory = { ...inventoryData };
+				categories.forEach(category => {
+					if (updatedInventory[category]) {
+						updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+							const mealKey = Object.keys(item)[0];
+							if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[seatUserId]) {
+								const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+								delete newSeatsOrdered[seatUserId];
+								return {
+									[mealKey]: {
+										...item[mealKey],
+										seatsOrdered: newSeatsOrdered
+									}
+								};
+							}
+							return item;
+						});
+					}
+				});
+
+				// Update inventory with removed orders
+				const removeResponse = await fetch(
+					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory?rev=${inventoryData._rev}`,
+					{
+						method: "PUT",
+						headers: {
+							Authorization: "Basic " + btoa("seatuser:password"),
+							"Content-Type": "application/json",
+						},
+						credentials: "include",
+						body: JSON.stringify(updatedInventory),
+					}
+				);
+
+				if (!removeResponse.ok) {
+					throw new Error("Failed to remove old orders");
+				}
+
+				// Get fresh inventory data after removing orders
+				const freshInventory = await fetch(
+					`/american234.AmericanAirlines.AA234/${isEconomy ? 'economy' : 'business'}inventory`,
+					{
+						headers: {
+							Authorization: "Basic " + btoa("seatuser:password"),
+							"Content-Type": "application/json",
+						},
+						credentials: "include",
+					}
+				);
+
+				if (!freshInventory.ok) {
+					throw new Error("Failed to fetch updated inventory");
+				}
+
+				inventoryData = await freshInventory.json();
+			}
+
+
+			// Now add new orders
+			const resultAction = await dispatch(
+				updateInventoryAction({
+					items: formattedItems,
+					seatUserId,
+				})
+			);
+
+			// If successful
+			if (updateInventoryAction.fulfilled.match(resultAction)) {
+				setOpen(false);
+				onOrderSuccess();
+			} else {
+				// If there's an error, throw it
+				throw resultAction.payload || resultAction.error;
+			}
+		} catch (error) {
+			console.error("Failed to update inventory:", error);
+		}
+	};
+
+	if (items.length === 0) {
+		return null;
+	}
+
+	return (
+		<div>
+			<Button
+				variant="contained"
+				color="primary"
+				onClick={handleOpen}
+				size="small"
+			>
+				Confirm Order
+			</Button>
+
+			<Dialog 
+				open={open} 
+				onClose={handleClose} 
+				fullWidth 
+				maxWidth="sm"
+				PaperProps={{
+					style: {
+						borderRadius: '8px'
+					}
+				}}
+			>
+				<DialogTitle>Order Summary</DialogTitle>
+				<DialogContent>
+					{error && <Alert severity="error">{error}</Alert>}
+					{items.map((item, idx) => (
+						<div
+							key={idx}
+							style={{ display: "flex", justifyContent: "space-between" }}
+						>
+							<div>
+								<p className="font-medium">{item.name}</p>
+								<p className="text-sm text-gray-500">{item.category}</p>
+							</div>
+						</div>
+					))}
+				</DialogContent>
+				<DialogActions>
+					<Button
+						onClick={handleClose}
+						color="inherit"
+						disabled={status === "loading"}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirm}
+						variant="contained"
+						color="primary"
+						disabled={status === "loading"}
+					>
+						{status === "loading" ? <CircularProgress size={24} /> : "Confirm"}
+					</Button>
+				</DialogActions>
+			</Dialog>
+		</div>
+	);
+};
+
+export default OrderSummaryDialog;
+File: ./components/ConfirmedOrder.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../store";
+import { Button, useTheme } from "@mui/material";
+import { removeMeal } from "../store/mealSlice";
+import { removeEconomyMeal } from "../store/economyMealSlice";
+import { useParams } from "react-router-dom";
+import OrderSummaryDialog from "./OrderSummaryDialog";
+
+interface ConfirmedOrderProps {
+  onEditOrder: () => void;
+  onEditComplete: () => void;
+  isEditing: boolean;
+}
+
+const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({ 
+  onEditOrder,
+  onEditComplete,
+  isEditing 
+}) => {
+  const dispatch = useDispatch();
+  const theme = useTheme();
+  const { seatClass } = useParams();
+  const isEconomy = seatClass === "economy";
+
+  const { items } = useSelector((state: RootState) =>
+    isEconomy ? state.economyMeal : state.businessMeal
+  );
+
+  const handleSaveOrder = () => {
+    onEditComplete();
+  };
+
+  return (
+    <div className="h-full flex flex-col p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Confirmed Order</h2>
+        {!isEditing ? (
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={onEditOrder}
+            size="small"
+          >
+            Edit Order
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <OrderSummaryDialog onOrderSuccess={handleSaveOrder} />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {items.length === 0 ? (
+          <p className="text-gray-500">No items in your order</p>
+        ) : (
+          <ul className="space-y-3">
+            {items.map((item, index) => (
+              <li
+                key={index}
+                className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
+              >
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-gray-500">{item.category}</p>
+                </div>
+                {isEditing && (
+                  <button
+                    className="px-3 py-1 rounded-full hover:bg-opacity-10 active:bg-opacity-20 touch-manipulation"
+                    style={{
+                      color: theme.palette.primary.main,
+                    }}
+                    onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeMeal(item.name))}
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ConfirmedOrder;
+File: ./components/LeftSideBar.tsx
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import {
+	Drawer,
+	Box,
+	List,
+	ListItemButton,
+	ListItemIcon,
+	ListItemText,
+	Tooltip,
+	IconButton,
+	TextField,
+	useTheme,
+	Theme,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import MovieIcon from "@mui/icons-material/Movie";
+import FlightIcon from "@mui/icons-material/Flight";
+import LuggageIcon from "@mui/icons-material/Luggage";
+import MusicNoteIcon from "@mui/icons-material/MusicNote";
+import FastfoodIcon from "@mui/icons-material/Fastfood";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+interface LeftSideBarProps {
+	isSidebarOpen: boolean;
+}
+
+export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
+	const theme: Theme = useTheme(); // Access the selected (business/economy) theme
+	const drawerWidth = isSidebarOpen ? 240 : 64;
+
+	return (
+		<Drawer
+			variant="permanent"
+			open
+			sx={{
+				"& .MuiDrawer-paper": {
+					position: "fixed",
+					top: "38px",
+					left: 0,
+					width: drawerWidth,
+					height: "calc(100% - 45px)",
+					transition: "width 0.3s ease-in-out",
+					overflowX: "hidden",
+					borderRight: "1px solid #ddd",
+					zIndex: 40,
+				},
+			}}
+		>
+			<SidebarContent isSidebarOpen={isSidebarOpen} theme={theme} />
+		</Drawer>
+	);
+}
+
+function SidebarContent({
+	isSidebarOpen,
+	theme,
+}: {
+	isSidebarOpen: boolean;
+	theme: Theme;
+}) {
+	const links = [
+		{ name: "Movies", icon: <MovieIcon /> },
+		{ name: "My Flight", icon: <FlightIcon /> },
+		{ name: "Luggage", icon: <LuggageIcon /> },
+		{ name: "Music Audio", icon: <MusicNoteIcon /> },
+	];
+	return (
+		<Box display="flex" flexDirection="column" height="100%" pt={2}>
+			<List>
+				{links.map((link) => (
+					<Tooltip
+						key={link.name}
+						title={!isSidebarOpen ? link.name : ""}
+						placement="right"
+					>
+						<ListItemButton
+							component="a"
+							href="#"
+							sx={{
+								minHeight: 48,
+								justifyContent: isSidebarOpen ? "initial" : "center",
+								px: 2.5,
+							}}
+						>
+							<ListItemIcon
+								sx={{
+									minWidth: 0,
+									mr: isSidebarOpen ? 2 : 0,
+									justifyContent: "center",
+								}}
+							>
+								{link.icon}
+							</ListItemIcon>
+							{isSidebarOpen && <ListItemText primary={link.name} />}
+						</ListItemButton>
+					</Tooltip>
+				))}
+
+				{/* Special Food & Drinks */}
+				<Tooltip
+					title={!isSidebarOpen ? "Food & Drinks" : ""}
+					placement="right"
+				>
+					<ListItemButton
+						component="a"
+						href="#"
+						sx={{
+							minHeight: 48,
+							justifyContent: isSidebarOpen ? "initial" : "center",
+							px: 2.5,
+							backgroundColor: theme.palette.primary.main,
+							"&:hover": {
+								backgroundColor: theme.palette.primary.dark,
+							},
+							color: "white",
+							mt: 2,
+						}}
+					>
+						<ListItemIcon
+							sx={{
+								minWidth: 0,
+								mr: isSidebarOpen ? 2 : 0,
+								justifyContent: "center",
+								color: "white",
+							}}
+						>
+							<FastfoodIcon />
+						</ListItemIcon>
+						{isSidebarOpen && <ListItemText primary="Food & Drinks" />}
+					</ListItemButton>
+				</Tooltip>
+
+				{/* "More" link */}
+				<Tooltip title={!isSidebarOpen ? "More" : ""} placement="right">
+					<ListItemButton
+						sx={{
+							minHeight: 48,
+							justifyContent: isSidebarOpen ? "initial" : "center",
+							px: 2.5,
+							mt: 2,
+						}}
+					>
+						<ListItemIcon
+							sx={{
+								minWidth: 0,
+								mr: isSidebarOpen ? 2 : 0,
+								justifyContent: "center",
+							}}
+						>
+							<ExpandMoreIcon />
+						</ListItemIcon>
+						{isSidebarOpen && <ListItemText primary="More" />}
+					</ListItemButton>
+				</Tooltip>
+			</List>
+
+			{/* Search Option */}
+			<Box mt="auto" p={2}>
+				<Box display="flex" alignItems="center" gap={1}>
+					<TextField
+						fullWidth
+						placeholder="Search..."
+						variant="outlined"
+						size="small"
+					/>
+					<IconButton>
+						<SearchIcon />
+					</IconButton>
+				</Box>
+			</Box>
+		</Box>
+	);
+}
+File: ./vite-env.d.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+/// <reference types="vite/client" />
+File: ./services/api.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+const BASE_URL = import.meta.env.DEV 
+  ? '' // Empty for development (will use proxy)
+  : 'https://localhost:60000'; // Your production URL
+
+export const api = {
+  fetch: async (endpoint: string, options: RequestInit = {}) => {
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + btoa('seatuser:password'),
+    };
+
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+};File: ./store/economyMealSlice.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { BusinessMealDoc } from "../types";
+
+/** We'll use the same types if they only differ by name in the Couchbase doc.
+If you'd like a separate "EconomyMealDoc," you can define that too. **/
+export type EconomyMealDoc = BusinessMealDoc
+
+export interface CartMeal {
+	name: string;
+	category: string;
+	mealId: string;
+}
+
+interface EconomyMealState {
+	data: BusinessMealDoc | null;
+	status: "idle" | "loading" | "succeeded" | "failed";
+	error: string | null;
+	items: CartMeal[];
+}
+
+const initialState: EconomyMealState = {
+	data: null,
+	status: "idle",
+	error: null,
+	items: [],
+};
+
+// GET economy meal from different path
+export const fetchEconomyMeal = createAsyncThunk<EconomyMealDoc>(
+	"economyMeal/fetchEconomyMeal",
+	async () => {
+		try {
+			const response = await fetch(
+				"/american234.AmericanAirlines.AA234/economymeal",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.text();
+				throw new Error(errorData || "Failed to fetch economyMeal data");
+			}
+
+			return (await response.json()) as EconomyMealDoc;
+		} catch (error) {
+			if (error instanceof Error) {
+				throw new Error(`Failed to fetch economyMeal data: ${error.message}`);
+			}
+			throw new Error("An unknown error occurred");
+		}
+	}
+);
+
+const economyMealSlice = createSlice({
+	name: "economyMeal",
+	initialState,
+	reducers: {
+		addMeal: (state, action: PayloadAction<CartMeal>) => {
+			// same logic as in your businessMeal slice
+			const existingIndex = state.items.findIndex(
+				(item) => item.category === action.payload.category
+			);
+			if (existingIndex >= 0) {
+				state.items.splice(existingIndex, 1);
+			}
+			state.items.push(action.payload);
+		},
+		removeMeal: (state, action: PayloadAction<string>) => {
+			const existingIndex = state.items.findIndex(
+				(item) => item.name === action.payload
+			);
+			if (existingIndex >= 0) {
+				state.items.splice(existingIndex, 1);
+			}
+		},
+		resetOrder: (state) => {
+			state.items = [];
+		},
+		setItems: (state, action: PayloadAction<CartMeal[]>) => {
+			state.items = action.payload;
+		},
+	},
+	extraReducers: (builder) => {
+		builder
+			.addCase(fetchEconomyMeal.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(fetchEconomyMeal.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(fetchEconomyMeal.rejected, (state, action) => {
+				state.status = "failed";
+				state.error = action.error.message ?? "Something went wrong";
+			});
+	},
+});
+
+export const {
+	addMeal: addEconomyMeal,
+	removeMeal: removeEconomyMeal,
+	resetOrder: resetEconomyOrder,
+	setItems: setEconomyItems,
+} = economyMealSlice.actions;
+export default economyMealSlice.reducer;
+File: ./store/inventorySlice.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { BusinessInventoryDoc, InventoryItem } from "../types";
+
+interface InventoryState {
+	data: BusinessInventoryDoc | null;
+	status: "idle" | "loading" | "succeeded" | "failed";
+	error: string | null;
+}
+
+const initialState: InventoryState = {
+	data: null,
+	status: "idle",
+	error: null,
+};
+
+export const fetchBusinessInventory = createAsyncThunk<BusinessInventoryDoc>(
+	"inventory/fetchBusinessInventory",
+	async () => {
+		const response = await fetch(
+			"/american234.AmericanAirlines.AA234/businessinventory",
+			{
+				headers: {
+					Authorization: "Basic " + btoa("seatuser:password"),
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+			}
+		);
+
+		if (!response.ok) {
+			throw new Error("Failed to fetch inventory");
+		}
+
+		return response.json();
+	}
+);
+
+interface UpdateOrderPayload {
+	items: Array<{
+		id: string;
+		category: string;
+	}>;
+	seatUserId: string;
+}
+
+export const updateBusinessInventory = createAsyncThunk(
+	"inventory/updateBusinessInventory",
+	async (payload: UpdateOrderPayload, { rejectWithValue }) => {
+		try {
+			// First, get the current inventory
+			const getResponse = await fetch(
+				"/american234.AmericanAirlines.AA234/businessinventory",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!getResponse.ok) {
+				throw new Error("Failed to fetch current inventory");
+			}
+
+			const currentInventory = await getResponse.json();
+			const revId = currentInventory._rev;
+
+			// Create updated inventory object
+			const updatedInventory = { ...currentInventory };
+
+			// First, remove all existing orders for this user from the categories being updated
+			const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
+			
+			Object.keys(updatedInventory).forEach(category => {
+				if (categoriesToUpdate.has(category) && Array.isArray(updatedInventory[category])) {
+					updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+						const mealKey = Object.keys(item)[0];
+						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+							const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+							delete newSeatsOrdered[payload.seatUserId];
+							return {
+								[mealKey]: {
+									...item[mealKey],
+									seatsOrdered: newSeatsOrdered
+								}
+							};
+						}
+						return item;
+					});
+				}
+			});
+
+			// Then add the new orders
+			payload.items.forEach((item) => {
+				const category = item.category.toLowerCase();
+				const categoryItems = updatedInventory[category];
+
+				const mealItem = categoryItems.find(
+					(mealId: InventoryItem) => Object.keys(mealId)[0] === item.id
+				);
+				if (mealItem) {
+					const mealKey = Object.keys(mealItem)[0];
+					if (!mealItem[mealKey].seatsOrdered) {
+						mealItem[mealKey].seatsOrdered = {};
+					}
+					mealItem[mealKey].seatsOrdered[payload.seatUserId] = 1;
+				}
+			});
+
+			// Make PUT request with updated inventory
+			const putResponse = await fetch(
+				`/american234.AmericanAirlines.AA234/businessinventory?rev=${revId}`,
+				{
+					method: "PUT",
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify(updatedInventory),
+				}
+			);
+
+			if (!putResponse.ok) {
+				throw new Error("Failed to update inventory");
+			}
+
+            const getNewResponse = await fetch(
+				"/american234.AmericanAirlines.AA234/businessinventory",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!getNewResponse.ok) {
+				throw new Error("Failed to fetch current inventory");
+			}
+
+			return getNewResponse.json();
+		} catch (error) {
+			return rejectWithValue(
+				error instanceof Error ? error.message : "Failed to update inventory"
+			);
+		}
+	}
+);
+
+const inventorySlice = createSlice({
+	name: "inventory",
+	initialState,
+	reducers: {},
+	extraReducers: (builder) => {
+		builder
+			.addCase(fetchBusinessInventory.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(fetchBusinessInventory.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(fetchBusinessInventory.rejected, (state, action) => {
+				state.status = "failed";
+				state.error = action.error.message ?? "Failed to fetch inventory";
+			})
+			.addCase(updateBusinessInventory.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(updateBusinessInventory.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(updateBusinessInventory.rejected, (state, action) => {
+				state.status = "failed";
+				state.error = action.error.message ?? "Failed to update inventory";
+			});
+	},
+});
+
+export default inventorySlice.reducer;
+File: ./store/economyInventorySlice.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { BusinessInventoryDoc, InventoryItem } from "../types";
+
+interface EconomyInventoryState {
+	data: BusinessInventoryDoc | null;
+	status: "idle" | "loading" | "succeeded" | "failed";
+	error: string | null;
+}
+
+const initialState: EconomyInventoryState = {
+	data: null,
+	status: "idle",
+	error: null,
+};
+
+// GET economy inventory
+export const fetchEconomyInventory = createAsyncThunk<BusinessInventoryDoc>(
+	"economyInventory/fetchEconomyInventory",
+	async () => {
+		const response = await fetch(
+			"/american234.AmericanAirlines.AA234/economyinventory",
+			{
+				headers: {
+					Authorization: "Basic " + btoa("seatuser:password"),
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+			}
+		);
+
+		if (!response.ok) {
+			throw new Error("Failed to fetch economy inventory");
+		}
+
+		return response.json();
+	}
+);
+
+interface UpdateOrderPayload {
+	items: Array<{
+		id: string;
+		category: string;
+	}>;
+	seatUserId: string;
+}
+
+export const updateEconomyInventory = createAsyncThunk(
+	"economyInventory/updateEconomyInventory",
+	async (payload: UpdateOrderPayload, { rejectWithValue }) => {
+		try {
+			// 1) fetch the current economy inventory
+			const getResponse = await fetch(
+				"/american234.AmericanAirlines.AA234/economyinventory",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!getResponse.ok) {
+				throw new Error("Failed to fetch current inventory");
+			}
+
+			const currentInventory = await getResponse.json();
+			const revId = currentInventory._rev;
+
+			// Create updated inventory object
+			const updatedInventory = { ...currentInventory };
+
+			// First, remove all existing orders for this user from the categories being updated
+			const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
+			
+			Object.keys(updatedInventory).forEach(category => {
+				if (categoriesToUpdate.has(category) && Array.isArray(updatedInventory[category])) {
+					updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+						const mealKey = Object.keys(item)[0];
+						if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+							const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+							delete newSeatsOrdered[payload.seatUserId];
+							return {
+								[mealKey]: {
+									...item[mealKey],
+									seatsOrdered: newSeatsOrdered
+								}
+							};
+						}
+						return item;
+					});
+				}
+			});
+
+			// Then add the new orders
+			payload.items.forEach((item) => {
+				const category = item.category.toLowerCase();
+				const categoryItems = updatedInventory[category];
+
+				const mealItem = categoryItems.find(
+					(mealId: InventoryItem) => Object.keys(mealId)[0] === item.id
+				);
+				if (mealItem) {
+					const mealKey = Object.keys(mealItem)[0];
+					if (!mealItem[mealKey].seatsOrdered) {
+						mealItem[mealKey].seatsOrdered = {};
+					}
+					mealItem[mealKey].seatsOrdered[payload.seatUserId] = 1;
+				}
+			});
+
+			// 3) PUT updated inventory
+			const putResponse = await fetch(
+				`/american234.AmericanAirlines.AA234/economyinventory?rev=${revId}`,
+				{
+					method: "PUT",
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify(updatedInventory),
+				}
+			);
+
+			if (!putResponse.ok) {
+				throw new Error("Failed to update economy inventory");
+			}
+
+			// 4) fetch the updated doc
+			const getNewResponse = await fetch(
+				"/american234.AmericanAirlines.AA234/economyinventory",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!getNewResponse.ok) {
+				throw new Error("Failed to fetch updated economy inventory");
+			}
+
+			return getNewResponse.json();
+		} catch (error) {
+			return rejectWithValue(
+				error instanceof Error
+					? error.message
+					: "Failed to update economy inventory"
+			);
+		}
+	}
+);
+
+const economyInventorySlice = createSlice({
+	name: "economyInventory",
+	initialState,
+	reducers: {},
+	extraReducers: (builder) => {
+		builder
+			.addCase(fetchEconomyInventory.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(fetchEconomyInventory.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(fetchEconomyInventory.rejected, (state, action) => {
+				state.status = "failed";
+				state.error =
+					action.error.message ?? "Failed to fetch economy inventory";
+			})
+			.addCase(updateEconomyInventory.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(updateEconomyInventory.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(updateEconomyInventory.rejected, (state, action) => {
+				state.status = "failed";
+				state.error =
+					action.error.message ?? "Failed to update economy inventory";
+			});
+	},
+});
+
+export default economyInventorySlice.reducer;
+File: ./store/index.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { configureStore, Middleware } from "@reduxjs/toolkit";
+
+// Business slices
+import mealReducer from "./mealSlice";
+import inventoryReducer from "./inventorySlice";
+
+// Economy slices
+import economyMealReducer from "./economyMealSlice";
+import economyInventoryReducer from "./economyInventorySlice";
+
+import { useDispatch, useSelector } from "react-redux";
+import type { TypedUseSelectorHook } from "react-redux";
+
+// Load persisted state from localStorage
+const loadState = () => {
+  try {
+    const businessMealState = localStorage.getItem('businessMeal');
+    const economyMealState = localStorage.getItem('economyMeal');
+    
+    return {
+      businessMeal: businessMealState ? JSON.parse(businessMealState) : undefined,
+      economyMeal: economyMealState ? JSON.parse(economyMealState) : undefined
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+// Create middleware to save state changes to localStorage
+const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
+  const result = next(action);
+  const state = store.getState();
+  
+  try {
+    // Only persist the items array from each slice
+    if (state.businessMeal?.items) {
+      localStorage.setItem('businessMeal', JSON.stringify({
+        ...state.businessMeal,
+        data: null,  // Don't persist API data
+        status: 'idle',
+        error: null
+      }));
+    }
+    if (state.economyMeal?.items) {
+      localStorage.setItem('economyMeal', JSON.stringify({
+        ...state.economyMeal,
+        data: null,  // Don't persist API data
+        status: 'idle',
+        error: null
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to save state to localStorage:', error);
+  }
+  
+  return result;
+};
+
+export const store = configureStore({
+  preloadedState: loadState(),
+  reducer: {
+    // Business
+    businessMeal: mealReducer,
+    businessInventory: inventoryReducer,
+
+    // Economy
+    economyMeal: economyMealReducer,
+    economyInventory: economyInventoryReducer,
+  },
+  middleware: (getDefaultMiddleware) => 
+    getDefaultMiddleware().concat(persistStateMiddleware),
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+File: ./store/mealSlice.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { BusinessMealDoc } from "../types";
+
+/** We only store meal name and category now. */
+export interface CartMeal {
+	name: string;
+	category: string;
+  mealId: string;
+}
+
+interface MealState {
+	// BusinessMeal data
+	data: BusinessMealDoc | null;
+	status: "idle" | "loading" | "succeeded" | "failed";
+	error: string | null;
+	// Cart items (one meal per category)
+	items: CartMeal[];
+}
+
+const initialState: MealState = {
+	data: null,
+	status: "idle",
+	error: null,
+	items: [],
+};
+
+export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
+	"meal/fetchBusinessMeal",
+	async () => {
+		try {
+			const response = await fetch(
+				"/american234.AmericanAirlines.AA234/businessmeal",
+				{
+					headers: {
+						Authorization: "Basic " + btoa("seatuser:password"),
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.text();
+				throw new Error(errorData || "Failed to fetch businessmeal data");
+			}
+
+			return (await response.json()) as BusinessMealDoc;
+		} catch (error) {
+			if (error instanceof Error) {
+				throw new Error(`Failed to fetch businessmeal data: ${error.message}`);
+			}
+			throw new Error("An unknown error occurred");
+		}
+	}
+);
+
+const mealSlice = createSlice({
+	name: "meal",
+	initialState,
+	reducers: {
+		addMeal: (state, action: PayloadAction<CartMeal>) => {
+			// In order to ensure only one meal can be selected per category,
+			// remove any existing meal with the same category:
+			const existingIndex = state.items.findIndex(
+				(item) => item.category === action.payload.category
+			);
+			if (existingIndex >= 0) {
+				// Remove the old meal from that category
+				state.items.splice(existingIndex, 1);
+			}
+
+			// Now push the newly selected meal
+			state.items.push(action.payload);
+		},
+
+		removeMeal: (state, action: PayloadAction<string>) => {
+			// action.payload is the meal name
+			const existingIndex = state.items.findIndex(
+				(item) => item.name === action.payload
+			);
+			if (existingIndex >= 0) {
+				state.items.splice(existingIndex, 1);
+			}
+		},
+
+		resetOrder: (state) => {
+			state.items = [];
+		},
+
+		setItems: (state, action: PayloadAction<CartMeal[]>) => {
+			state.items = action.payload;
+		},
+	},
+	extraReducers(builder) {
+		builder
+			.addCase(fetchBusinessMeal.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(fetchBusinessMeal.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				state.data = action.payload;
+				state.error = null;
+			})
+			.addCase(fetchBusinessMeal.rejected, (state, action) => {
+				state.status = "failed";
+				state.error = action.error.message ?? "Something went wrong";
+			});
+	},
+});
+
+export const { addMeal, removeMeal, resetOrder, setItems } = mealSlice.actions;
+export default mealSlice.reducer;
+File: ./themes.ts
+PWD: /Users/kaustavghosh/Desktop/edge-server-sko-demo/src
+import { createTheme } from "@mui/material/styles";
+
+// BUSINESS theme => primary is red, secondary is teal
+export const businessTheme = createTheme({
+	palette: {
+		primary: { main: "#EA2328" }, // "cb-red"
+		secondary: { main: "#2E22D4" }, // "cb-teal"
+	},
+	typography: {
+		fontFamily: ["Arial", "sans-serif"].join(","),
+	},
+});
+
+// ECONOMY theme => primary is teal, secondary is red
+export const economyTheme = createTheme({
+	palette: {
+		primary: { main: "#2E22D4" }, // "cb-teal"
+		secondary: { main: "#EA2328" }, // "cb-red"
+	},
+	typography: {
+		fontFamily: ["Arial", "sans-serif"].join(","),
+	},
+});

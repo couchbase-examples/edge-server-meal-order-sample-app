@@ -199,7 +199,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				className="w-full px-4 py-2 text-white rounded hover:bg-opacity-90 transition-colors"
 				style={{ backgroundColor: theme.palette.primary.main }}
 			>
-				Confirm Order
+				Confirm
 			</button>
 
 			<Dialog 

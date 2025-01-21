@@ -72,13 +72,13 @@ function BusinessMealPage() {
 		mealName: string,
 		categoryName: string,
 		mealId: string,
-		inventoryCount: number
+		inventoryCount: number,
+		isSelected: boolean
 	) => {
-		if (inventoryCount <= 0 || (isOrderConfirmed && !isEditing)) {
+		if ((inventoryCount <= 0 && !isSelected) || (isOrderConfirmed && !isEditing)) {
 			return;
 		}
 		// If already selected, remove it; otherwise add it.
-		const isSelected = mealState.items.some((item) => item.name === mealName);
 		if (isSelected) {
 			if (isEconomy) dispatch(removeEconomyMeal(mealName));
 			else dispatch(removeMeal(mealName));
@@ -119,20 +119,23 @@ function BusinessMealPage() {
 								matchedInventory = invObj[item.mealid];
 							}
 						});
-						// Calculate number of orders
-						const orderedCount = Object.keys(
-							matchedInventory?.seatsOrdered || {}
-						).length;
 
-						// Calculate available count
-						const available =
-							(matchedInventory?.startingInventory || 0) - orderedCount;
+						const seatId = localStorage.getItem('seatId') || '';
 						const isSelected = mealState.items.some(
 							(cartItem) => cartItem.name === item.meal
 						);
 
-						// Style classes:
-						const isOutOfStock = available <= 0;
+						// Calculate number of orders excluding current user's selection
+						const orderedCount = Object.keys(
+							matchedInventory?.seatsOrdered || {}
+						).filter(id => id !== seatId).length;
+
+						// Calculate available count
+						const totalAvailable = (matchedInventory?.startingInventory || 0) - orderedCount;
+						
+						// Item is out of stock if no more available AND user hasn't already selected it
+						const isOutOfStock = totalAvailable <= 0 && !isSelected;
+
 						const cardClass = `
               shadow-md transition-transform transform relative
               ${
@@ -162,7 +165,8 @@ function BusinessMealPage() {
 										item.meal,
 										categoryName,
 										item.mealid,
-										available
+										totalAvailable,
+										isSelected
 									)
 								}
 								sx={{
