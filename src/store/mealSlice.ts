@@ -86,6 +86,10 @@ const mealSlice = createSlice({
 		resetOrder: (state) => {
 			state.items = [];
 		},
+
+		setItems: (state, action: PayloadAction<CartMeal[]>) => {
+			state.items = action.payload;
+		},
 	},
 	extraReducers(builder) {
 		builder
@@ -105,5 +109,5 @@ const mealSlice = createSlice({
 	},
 });
 
-export const { addMeal, removeMeal, resetOrder } = mealSlice.actions;
+export const { addMeal, removeMeal, resetOrder, setItems } = mealSlice.actions;
 export default mealSlice.reducer;

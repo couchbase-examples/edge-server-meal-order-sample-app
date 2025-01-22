@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
 import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
@@ -14,6 +14,20 @@ import {
 import { fetchEconomyInventory } from "../store/economyInventorySlice";
 
 function BusinessMealPage() {
+	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+
+	useEffect(() => {
+		const handleOrderStateChange = (event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>) => {
+			setIsOrderConfirmed(event.detail.isOrderConfirmed);
+			setIsEditing(event.detail.isEditing);
+		};
+
+		window.addEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		return () => {
+			window.removeEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		};
+	}, []);
 	const dispatch = useAppDispatch();
 	const { seatClass } = useParams();
 	// Determine which slice to use
@@ -58,13 +72,13 @@ function BusinessMealPage() {
 		mealName: string,
 		categoryName: string,
 		mealId: string,
-		inventoryCount: number
+		inventoryCount: number,
+		isSelected: boolean
 	) => {
-		if (inventoryCount <= 0) {
+		if ((inventoryCount <= 0 && !isSelected) || (isOrderConfirmed && !isEditing)) {
 			return;
 		}
 		// If already selected, remove it; otherwise add it.
-		const isSelected = mealState.items.some((item) => item.name === mealName);
 		if (isSelected) {
 			if (isEconomy) dispatch(removeEconomyMeal(mealName));
 			else dispatch(removeMeal(mealName));
@@ -105,20 +119,23 @@ function BusinessMealPage() {
 								matchedInventory = invObj[item.mealid];
 							}
 						});
-						// Calculate number of orders
-						const orderedCount = Object.keys(
-							matchedInventory?.seatsOrdered || {}
-						).length;
 
-						// Calculate available count
-						const available =
-							(matchedInventory?.startingInventory || 0) - orderedCount;
+						const seatId = localStorage.getItem('seatId') || '';
 						const isSelected = mealState.items.some(
 							(cartItem) => cartItem.name === item.meal
 						);
 
-						// Style classes:
-						const isOutOfStock = available <= 0;
+						// Calculate number of orders excluding current user's selection
+						const orderedCount = Object.keys(
+							matchedInventory?.seatsOrdered || {}
+						).filter(id => id !== seatId).length;
+
+						// Calculate available count
+						const totalAvailable = (matchedInventory?.startingInventory || 0) - orderedCount;
+						
+						// Item is out of stock if no more available AND user hasn't already selected it
+						const isOutOfStock = totalAvailable <= 0 && !isSelected;
+
 						const cardClass = `
               shadow-md transition-transform transform relative
               ${
@@ -136,7 +153,7 @@ function BusinessMealPage() {
 						return (
 							<Card
 								key={item.mealid}
-								className={cardClass}
+								className={`${cardClass} ${(isOrderConfirmed && !isEditing) ? 'pointer-events-none opacity-50' : ''}`}
 								style={{
 									// If selected, the border color is the theme's primary color
 									borderColor: isSelected
@@ -148,7 +165,8 @@ function BusinessMealPage() {
 										item.meal,
 										categoryName,
 										item.mealid,
-										available
+										totalAvailable,
+										isSelected
 									)
 								}
 								sx={{

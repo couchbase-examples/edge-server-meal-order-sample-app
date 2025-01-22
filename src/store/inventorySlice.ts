@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { BusinessInventoryDoc } from "../types";
+import { BusinessInventoryDoc, InventoryItem } from "../types";
+import { api } from '../services/api';
 
 interface InventoryState {
 	data: BusinessInventoryDoc | null;
@@ -13,28 +14,6 @@ const initialState: InventoryState = {
 	error: null,
 };
 
-export const fetchBusinessInventory = createAsyncThunk<BusinessInventoryDoc>(
-	"inventory/fetchBusinessInventory",
-	async () => {
-		const response = await fetch(
-			"/american234.AmericanAirlines.AA234/businessinventory",
-			{
-				headers: {
-					Authorization: "Basic " + btoa("seatuser:password"),
-					"Content-Type": "application/json",
-				},
-				credentials: "include",
-			}
-		);
-
-		if (!response.ok) {
-			throw new Error("Failed to fetch inventory");
-		}
-
-		return response.json();
-	}
-);
-
 interface UpdateOrderPayload {
 	items: Array<{
 		id: string;
@@ -43,89 +22,89 @@ interface UpdateOrderPayload {
 	seatUserId: string;
 }
 
+// Type guard to check if a category exists in BusinessInventoryDoc
+const isValidCategory = (category: string): category is keyof Omit<BusinessInventoryDoc, '_id' | '_rev' | 'type' | 'flightno' | 'leg' | 'aircraft'> => {
+  return ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'].includes(category);
+};
+
+// API helper functions
+const getCurrentInventory = async (): Promise<BusinessInventoryDoc> => {
+  return api.fetch("/american234.AmericanAirlines.AA234/businessinventory");
+};
+
+const updateInventoryData = async (inventory: BusinessInventoryDoc, revId: string): Promise<BusinessInventoryDoc> => {
+  return api.fetch(`/american234.AmericanAirlines.AA234/businessinventory?rev=${revId}`, {
+    method: "PUT",
+    body: JSON.stringify(inventory),
+  });
+};
+
+// Thunks
+export const fetchBusinessInventory = createAsyncThunk<BusinessInventoryDoc>(
+  "inventory/fetchBusinessInventory",
+  getCurrentInventory
+);
+
 export const updateBusinessInventory = createAsyncThunk(
-	"inventory/updateBusinessInventory",
-	async (payload: UpdateOrderPayload, { rejectWithValue }) => {
-		try {
-			// First, get the current inventory
-			const getResponse = await fetch(
-				"/american234.AmericanAirlines.AA234/businessinventory",
-				{
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-				}
-			);
+  "inventory/updateBusinessInventory",
+  async (payload: UpdateOrderPayload, { rejectWithValue }) => {
+    try {
+      // Get current inventory
+      const currentInventory = await getCurrentInventory();
+      const revId = currentInventory._rev;
 
-			if (!getResponse.ok) {
-				throw new Error("Failed to fetch current inventory");
-			}
+      // Create updated inventory object
+      const updatedInventory = { ...currentInventory };
 
-			const currentInventory = await getResponse.json();
-			const revId = currentInventory._rev;
+      // Remove existing orders for this user
+      const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
+      
+      categoriesToUpdate.forEach(category => {
+        if (isValidCategory(category)) {
+          updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+            const mealKey = Object.keys(item)[0];
+            if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+              const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+              delete newSeatsOrdered[payload.seatUserId];
+              return {
+                [mealKey]: {
+                  ...item[mealKey],
+                  seatsOrdered: newSeatsOrdered
+                }
+              };
+            }
+            return item;
+          });
+        }
+      });
 
-			// Create updated inventory object
-			const updatedInventory = { ...currentInventory };
+      // Add new orders
+      payload.items.forEach((item) => {
+        const category = item.category.toLowerCase();
+        if (isValidCategory(category)) {
+          const categoryItems = updatedInventory[category];
+          const mealItem = categoryItems.find(
+            (mealId: InventoryItem) => Object.keys(mealId)[0] === item.id
+          );
+          if (mealItem) {
+            const mealKey = Object.keys(mealItem)[0];
+            if (!mealItem[mealKey].seatsOrdered) {
+              mealItem[mealKey].seatsOrdered = {};
+            }
+            mealItem[mealKey].seatsOrdered[payload.seatUserId] = 1;
+          }
+        }
+      });
 
-			// Update seatsOrdered for each item
-			payload.items.forEach((item) => {
-				const category = item.category.toLowerCase();
-				const categoryItems = updatedInventory[category];
-
-				const mealItem = categoryItems.find(
-					(mealId: string) => Object.keys(mealId)[0] === item.id
-				);
-				if (mealItem) {
-					const mealKey = Object.keys(mealItem)[0];
-					if (!mealItem[mealKey].seatsOrdered) {
-						mealItem[mealKey].seatsOrdered = {};
-					}
-					mealItem[mealKey].seatsOrdered[payload.seatUserId] = 1;
-				}
-			});
-
-			// Make PUT request with updated inventory
-			const putResponse = await fetch(
-				`/american234.AmericanAirlines.AA234/businessinventory?rev=${revId}`,
-				{
-					method: "PUT",
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-					body: JSON.stringify(updatedInventory),
-				}
-			);
-
-			if (!putResponse.ok) {
-				throw new Error("Failed to update inventory");
-			}
-
-            const getNewResponse = await fetch(
-				"/american234.AmericanAirlines.AA234/businessinventory",
-				{
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-				}
-			);
-
-			if (!getNewResponse.ok) {
-				throw new Error("Failed to fetch current inventory");
-			}
-
-			return getNewResponse.json();
-		} catch (error) {
-			return rejectWithValue(
-				error instanceof Error ? error.message : "Failed to update inventory"
-			);
-		}
-	}
+      // Update inventory and get fresh data
+      await updateInventoryData(updatedInventory, revId);
+      return getCurrentInventory();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to update inventory"
+      );
+    }
+  }
 );
 
 const inventorySlice = createSlice({

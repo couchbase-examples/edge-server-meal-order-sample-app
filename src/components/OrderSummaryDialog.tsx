@@ -1,13 +1,8 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, store } from "../store";
-
-// Business
-import { resetOrder as resetBusinessOrder } from "../store/mealSlice";
+import { useTheme } from "@mui/material/styles";
 import { updateBusinessInventory } from "../store/inventorySlice";
-
-// Economy
-import { resetEconomyOrder } from "../store/economyMealSlice";
 import { updateEconomyInventory } from "../store/economyInventorySlice";
 
 import {
@@ -29,6 +24,7 @@ interface OrderSummaryDialogProps {
 const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
 }) => {
+	const theme = useTheme();
 	const dispatch = useDispatch<typeof store.dispatch>();
 	const { seatClass } = useParams();
 
@@ -42,8 +38,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		isEconomy ? state.economyInventory : state.businessInventory
 	);
 
-	// Decide which actions to dispatch
-	const resetAction = isEconomy ? resetEconomyOrder : resetBusinessOrder;
+	// Decide which action to dispatch
 	const updateInventoryAction = isEconomy
 		? updateEconomyInventory
 		: updateBusinessInventory;
@@ -60,36 +55,31 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	};
 
 	const handleConfirm = async () => {
-		try {
-			const formattedItems = items.map((item) => ({
-				id: item.mealId,
-				category: item.category,
-			}));
+			try {
+				const formattedItems = items.map((item) => ({
+					id: item.mealId,
+					category: item.category,
+				}));
 
-			// Dispatch the correct update action (economy or business)
-			const resultAction = await dispatch(
-				updateInventoryAction({
-					items: formattedItems,
-					seatUserId,
-				})
-			);
+				// Update inventory using Redux action
+				const resultAction = await dispatch(
+					updateInventoryAction({
+						items: formattedItems,
+						seatUserId,
+					})
+				);
 
-			// If successful
-			if (updateInventoryAction.fulfilled.match(resultAction)) {
-				dispatch(resetAction());
-				setOpen(false);
-				onOrderSuccess();
-			} else {
-				// If there's an error, throw it
-				throw resultAction.payload || resultAction.error;
+				// If successful
+				if (updateInventoryAction.fulfilled.match(resultAction)) {
+					setOpen(false);
+					onOrderSuccess();
+				} else {
+					// If there's an error, throw it
+					throw resultAction.payload || resultAction.error;
+				}
+			} catch (error) {
+				console.error("Failed to update inventory:", error);
 			}
-		} catch (error) {
-			console.error("Failed to update inventory:", error);
-		}
-	};
-
-	const handleReset = () => {
-		dispatch(resetAction());
 	};
 
 	if (items.length === 0) {
@@ -97,22 +87,26 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	}
 
 	return (
-		<div className="my-4 flex justify-end">
-			<div>
-				<Button
-					variant="contained"
-					color="primary"
-					onClick={handleOpen}
-					style={{ marginRight: "8px" }}
-				>
-					Confirm Selection
-				</Button>
-				<Button onClick={handleReset} className="bg-gray-200 px-4 py-2 rounded">
-					Reset
-				</Button>
-			</div>
+		<div>
+			<button
+				onClick={handleOpen}
+				className="w-full px-4 py-2 text-white rounded hover:bg-opacity-90 transition-colors"
+				style={{ backgroundColor: theme.palette.primary.main }}
+			>
+				Confirm
+			</button>
 
-			<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+			<Dialog 
+				open={open} 
+				onClose={handleClose} 
+				fullWidth 
+				maxWidth="sm"
+				PaperProps={{
+					style: {
+						borderRadius: '8px'
+					}
+				}}
+			>
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error">{error}</Alert>}

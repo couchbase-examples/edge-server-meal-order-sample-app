@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, Middleware } from "@reduxjs/toolkit";
 
 // Business slices
 import mealReducer from "./mealSlice";
@@ -11,16 +11,64 @@ import economyInventoryReducer from "./economyInventorySlice";
 import { useDispatch, useSelector } from "react-redux";
 import type { TypedUseSelectorHook } from "react-redux";
 
-export const store = configureStore({
-	reducer: {
-		// Business
-		businessMeal: mealReducer,
-		businessInventory: inventoryReducer,
+// Load persisted state from localStorage
+const loadState = () => {
+  try {
+    const businessMealState = localStorage.getItem('businessMeal');
+    const economyMealState = localStorage.getItem('economyMeal');
+    
+    return {
+      businessMeal: businessMealState ? JSON.parse(businessMealState) : undefined,
+      economyMeal: economyMealState ? JSON.parse(economyMealState) : undefined
+    };
+  } catch {
+    return undefined;
+  }
+};
 
-		// Economy
-		economyMeal: economyMealReducer,
-		economyInventory: economyInventoryReducer,
-	},
+// Create middleware to save state changes to localStorage
+const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
+  const result = next(action);
+  const state = store.getState();
+  
+  try {
+    // Only persist the items array from each slice
+    if (state.businessMeal?.items) {
+      localStorage.setItem('businessMeal', JSON.stringify({
+        ...state.businessMeal,
+        data: null,  // Don't persist API data
+        status: 'idle',
+        error: null
+      }));
+    }
+    if (state.economyMeal?.items) {
+      localStorage.setItem('economyMeal', JSON.stringify({
+        ...state.economyMeal,
+        data: null,  // Don't persist API data
+        status: 'idle',
+        error: null
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to save state to localStorage:', error);
+  }
+  
+  return result;
+};
+
+export const store = configureStore({
+  preloadedState: loadState(),
+  reducer: {
+    // Business
+    businessMeal: mealReducer,
+    businessInventory: inventoryReducer,
+
+    // Economy
+    economyMeal: economyMealReducer,
+    economyInventory: economyInventoryReducer,
+  },
+  middleware: (getDefaultMiddleware) => 
+    getDefaultMiddleware().concat(persistStateMiddleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

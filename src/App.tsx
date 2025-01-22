@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 import Navbar from "./components/Navbar";
 import LeftSideBar from "./components/LeftSideBar";
-import OrderSummary from "./components/OrderSummary";
 import Cart from "./components/Cart";
 import { businessTheme, economyTheme } from "./themes";
 import { getOrCreateSeatId } from "./utils/createSeatId";
@@ -58,14 +57,10 @@ export default function App() {
 								<BusinessMealPage />
 							</div>
 						</main>
-
-						<footer className="sticky bottom-0 bg-gray-100 p-2 sm:p-4 border-t border-gray-200">
-							<OrderSummary />
-						</footer>
 					</div>
 
 					{/* Right Cart (desktop only) */}
-					<aside className="w-72 mt-12 bg-white border-l border-gray-200">
+					<aside className="w-72 bg-white border-l border-gray-200">
 						<Cart />
 					</aside>
 				</div>

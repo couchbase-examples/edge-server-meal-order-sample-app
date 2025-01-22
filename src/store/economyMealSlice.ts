@@ -81,6 +81,9 @@ const economyMealSlice = createSlice({
 		resetOrder: (state) => {
 			state.items = [];
 		},
+		setItems: (state, action: PayloadAction<CartMeal[]>) => {
+			state.items = action.payload;
+		},
 	},
 	extraReducers: (builder) => {
 		builder
@@ -104,5 +107,6 @@ export const {
 	addMeal: addEconomyMeal,
 	removeMeal: removeEconomyMeal,
 	resetOrder: resetEconomyOrder,
+	setItems: setEconomyItems,
 } = economyMealSlice.actions;
 export default economyMealSlice.reducer;
