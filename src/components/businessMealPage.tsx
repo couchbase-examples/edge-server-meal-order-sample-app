@@ -115,9 +115,9 @@ function BusinessMealPage() {
 	// A helper to render each category
 	const renderMealCategory = (categoryName: string, items: any[]) => {
 		return (
-			<div className="w-full max-w-[2000px] mx-auto px-4 mb-4">
+			<div className="w-full max-w-[2000px] mx-auto mb-4">
 				<div 
-					className="flex items-center justify-between cursor-pointer py-2 px-2"
+					className="flex items-center justify-between cursor-pointer py-2"
 					onClick={() => toggleCategory(categoryName)}
 				>
 					<div className="flex items-center gap-2">
@@ -133,8 +133,11 @@ function BusinessMealPage() {
 				<div 
 					className={`
 						flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4
-						transition-all duration-300 ease-in-out overflow-hidden
-						${expandedCategories[categoryName] ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
+						transition-all duration-500 ease-in-out overflow-hidden
+						${expandedCategories[categoryName] 
+							? 'max-h-[2000px] opacity-100 pt-4 pb-12' 
+							: 'max-h-0 opacity-0 pt-0 pb-0'
+						}
 					`}
 				>
 					{items.map((item) => {
@@ -177,7 +180,7 @@ function BusinessMealPage() {
 	};
 
 	return (
-		<div className="p-2 sm:p-4">
+		<div>
 			{renderMealCategory("breakfast", breakfast)}
 			{renderMealCategory("lunch", lunch)}
 			{renderMealCategory("dinner", dinner)}
