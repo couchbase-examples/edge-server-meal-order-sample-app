@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
 import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
 import { fetchBusinessInventory } from "../store/inventorySlice";
-import { Card, CardContent, Typography, useTheme } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { Typography } from "@mui/material";
+import MealCard from "./MealCard";
 import { useParams } from "react-router-dom";
 import {
 	addEconomyMeal,
@@ -40,8 +40,6 @@ function BusinessMealPage() {
 	const inventoryState = useAppSelector((state) =>
 		isEconomy ? state.economyInventory : state.businessInventory
 	);
-	const theme = useTheme();
-
 	useEffect(() => {
 		if (isEconomy) {
 			dispatch(fetchEconomyMeal());
@@ -106,108 +104,37 @@ function BusinessMealPage() {
 				</Typography>
 				<div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4 mt-2">
 					{items.map((item) => {
-						let matchedInventory: {
-							startingInventory: number;
-							seatsOrdered: Record<string, number>;
-						} = {
-							startingInventory: 0,
-							seatsOrdered: {},
-						};
-						const invArray = (inventory as any)[categoryName] || [];
-						invArray.forEach((invObj: any) => {
-							if (Object.keys(invObj)[0] === item.mealid) {
-								matchedInventory = invObj[item.mealid];
-							}
-						});
+            const matchedInventory = (inventory as any)[categoryName]?.find(
+              (invObj: any) => Object.keys(invObj)[0] === item.mealid
+            )?.[item.mealid] || { startingInventory: 0, seatsOrdered: {} };
 
-						const seatId = localStorage.getItem('seatId') || '';
-						const isSelected = mealState.items.some(
-							(cartItem) => cartItem.name === item.meal
-						);
+            const seatId = localStorage.getItem('seatId') || '';
+            const isSelected = mealState.items.some(
+              (cartItem) => cartItem.name === item.meal
+            );
 
-						// Calculate number of orders excluding current user's selection
-						const orderedCount = Object.keys(
-							matchedInventory?.seatsOrdered || {}
-						).filter(id => id !== seatId).length;
+            const orderedCount = Object.keys(matchedInventory.seatsOrdered)
+              .filter(id => id !== seatId).length;
+            const totalAvailable = matchedInventory.startingInventory - orderedCount;
+            const isOutOfStock = totalAvailable <= 0 && !isSelected;
 
-						// Calculate available count
-						const totalAvailable = (matchedInventory?.startingInventory || 0) - orderedCount;
-						
-						// Item is out of stock if no more available AND user hasn't already selected it
-						const isOutOfStock = totalAvailable <= 0 && !isSelected;
-
-						const cardClass = `
-              shadow-md transition-transform transform relative
-              ${
-								isOutOfStock
-									? "cursor-not-allowed grayscale hover:scale-100"
-									: "cursor-pointer hover:scale-105"
-							}
-              ${
-								isSelected
-									? "border-4 border-green-500"
-									: "border border-gray-200"
-							}
-            `;
-
-						return (
-							<Card
-								key={item.mealid}
-								className={`${cardClass} ${(isOrderConfirmed && !isEditing) ? 'pointer-events-none opacity-50' : ''}`}
-								style={{
-									// If selected, the border color is the theme's primary color
-									borderColor: isSelected
-										? theme.palette.primary.main
-										: "rgb(229 231 235)",
-								}}
-								onClick={() =>
-									handleCardClick(
-										item.meal,
-										categoryName,
-										item.mealid,
-										totalAvailable,
-										isSelected
-									)
-								}
-								sx={{
-									"&:active": {
-										transform: "scale(0.98)",
-									},
-									touchAction: "manipulation",
-								}}
-							>
-								{/* Checkmark Icon for Selected Items */}
-								{isSelected && !isOutOfStock && (
-									<div className="absolute top-2 right-2">
-										<CheckCircleIcon fontSize="small" color="primary" />
-									</div>
-								)}
-								<CardContent className="p-3 sm:p-4">
-									<Typography variant="h6" className="text-base sm:text-lg">
-										{item.meal}
-									</Typography>
-									<Typography variant="body2" className="text-sm text-gray-600">
-										{item.description}
-									</Typography>
-									<div className="w-full h-48 2xl:h-auto 2xl:aspect-w-16 2xl:aspect-h-9 mt-2">
-										<img
-											src={getImagePath(item.assetid)}
-											alt={item.meal}
-											className="w-full h-full object-cover rounded 2xl:object-contain"
-											loading="lazy"
-											onError={(e) => {
-												const target = e.target as HTMLImageElement;
-												target.src = getImagePath("default");
-											}}
-										/>
-									</div>
-									{isOutOfStock && (
-										<div className="mt-2 text-red-500 font-semibold text-sm">
-											Currently Unavailable
-										</div>
-									)}
-								</CardContent>
-							</Card>
+            return (
+              <MealCard
+                key={item.mealid}
+                meal={item}
+                isSelected={isSelected}
+                isOutOfStock={isOutOfStock}
+                isOrderConfirmed={isOrderConfirmed}
+                isEditing={isEditing}
+                onCardClick={() => handleCardClick(
+                  item.meal,
+                  categoryName,
+                  item.mealid,
+                  totalAvailable,
+                  isSelected
+                )}
+                getImagePath={getImagePath}
+              />
 						);
 					})}
 				</div>
