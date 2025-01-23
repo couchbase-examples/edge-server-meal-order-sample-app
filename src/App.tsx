@@ -43,26 +43,29 @@ export default function App() {
 				<Navbar onMenuClick={handleSidebarToggle} />
 
 				{/* Main container (under the 45px navbar) */}
-				<div className="flex flex-1 h-[calc(100vh-45px)]">
-          {/* Left SideBar (always "permanent" so it does NOT overlay) */}
+				<div className="flex flex-1 h-[calc(100vh-45px)] relative">
+					{/* Left SideBar (always "permanent" so it does NOT overlay) */}
 					<LeftSideBar isSidebarOpen={isSidebarOpen} />
 
-					{/* Main content area: shift right so it’s never hidden */}
+					{/* Main content area: shift right so it's never hidden */}
 					<div
 						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
 						style={{ marginLeft: `${sidebarWidth}px` }}
 					>
 						<main className="flex-1">
-							<div className="p-2 sm:p-4 mt-8">
+							<div className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
 								<BusinessMealPage />
 							</div>
 						</main>
 					</div>
 
-					{/* Right Cart (desktop only) */}
-					<aside className="w-72 bg-white border-l border-gray-200">
+					{/* Right Cart (desktop) or Bottom Cart (mobile/tablet) */}
+					<aside className="hidden md:block w-72 bg-white border-l border-gray-200">
 						<Cart />
 					</aside>
+					<div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+						<Cart isMobile={true} />
+					</div>
 				</div>
 			</div>
 		</ThemeProvider>
