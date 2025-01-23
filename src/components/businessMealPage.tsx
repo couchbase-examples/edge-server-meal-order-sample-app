@@ -12,6 +12,7 @@ import {
 	removeEconomyMeal,
 } from "../store/economyMealSlice";
 import { fetchEconomyInventory } from "../store/economyInventorySlice";
+import useInventoryChanges from "../hooks/useInventoryChanges";
 
 function BusinessMealPage() {
 	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -32,6 +33,7 @@ function BusinessMealPage() {
 	const { seatClass } = useParams();
 	// Determine which slice to use
 	const isEconomy = seatClass === "economy";
+	useInventoryChanges(isEconomy);
 
 	// If economy => economyMeal, else => businessMeal
 	const mealState = useAppSelector((state) =>
@@ -188,6 +190,7 @@ function BusinessMealPage() {
 									</Typography>
 									<Typography variant="body2" className="text-sm text-gray-600">
 										{item.description}
+										<br/> {totalAvailable}
 									</Typography>
 									<div className="aspect-w-16 aspect-h-9 mt-2">
 										<img
