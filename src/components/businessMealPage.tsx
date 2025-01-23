@@ -1,21 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../store";
-import { fetchBusinessMeal, addMeal, removeMeal } from "../store/mealSlice";
-import { fetchBusinessInventory } from "../store/inventorySlice";
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { Typography } from "@mui/material";
-import MealCard from "./MealCard";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../store";
+import { fetchEconomyInventory } from "../store/economyInventorySlice";
 import {
 	addEconomyMeal,
 	fetchEconomyMeal,
 	removeEconomyMeal,
 } from "../store/economyMealSlice";
-import { fetchEconomyInventory } from "../store/economyInventorySlice";
+import { fetchBusinessInventory } from "../store/inventorySlice";
+import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
+import MealCard from "./MealCard";
 
 function BusinessMealPage() {
 	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
+	const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+		breakfast: true,
+		lunch: true,
+		dinner: true,
+		dessert: true,
+		beverage: true,
+		alcohol: true
+	});
+
+	const toggleCategory = (category: string) => {
+		setExpandedCategories(prev => ({
+			...prev,
+			[category]: !prev[category]
+		}));
+	};
 
 	useEffect(() => {
 		const handleOrderStateChange = (event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>) => {
@@ -98,11 +115,28 @@ function BusinessMealPage() {
 	// A helper to render each category
 	const renderMealCategory = (categoryName: string, items: any[]) => {
 		return (
-			<div className="w-full max-w-[2000px] mx-auto px-4">
-				<Typography variant="h5" className="font-bold px-2 pt-2">
-					{categoryName.toUpperCase()}
-				</Typography>
-				<div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4 mt-2">
+			<div className="w-full max-w-[2000px] mx-auto px-4 mb-4">
+				<div 
+					className="flex items-center justify-between cursor-pointer py-2 px-2"
+					onClick={() => toggleCategory(categoryName)}
+				>
+					<div className="flex items-center gap-2">
+						<Typography variant="h5" className="font-bold">
+							{categoryName.toUpperCase()}
+						</Typography>
+						{expandedCategories[categoryName] ? 
+							<KeyboardArrowUpIcon className="text-gray-600" /> : 
+							<KeyboardArrowDownIcon className="text-gray-600" />
+						}
+					</div>
+				</div>
+				<div 
+					className={`
+						flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4
+						transition-all duration-300 ease-in-out overflow-hidden
+						${expandedCategories[categoryName] ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
+					`}
+				>
 					{items.map((item) => {
             const matchedInventory = (inventory as any)[categoryName]?.find(
               (invObj: any) => Object.keys(invObj)[0] === item.mealid
