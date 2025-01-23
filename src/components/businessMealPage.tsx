@@ -104,7 +104,7 @@ function BusinessMealPage() {
 				<Typography variant="h5" className="font-bold px-2 pt-2">
 					{categoryName.toUpperCase()}
 				</Typography>
-				<div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-2">
+				<div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4 mt-2">
 					{items.map((item) => {
 						let matchedInventory: {
 							startingInventory: number;
@@ -189,11 +189,11 @@ function BusinessMealPage() {
 									<Typography variant="body2" className="text-sm text-gray-600">
 										{item.description}
 									</Typography>
-									<div className="w-full h-48 md:h-auto md:aspect-w-16 md:aspect-h-9 mt-2">
+									<div className="w-full h-48 2xl:h-auto 2xl:aspect-w-16 2xl:aspect-h-9 mt-2">
 										<img
 											src={getImagePath(item.assetid)}
 											alt={item.meal}
-											className="w-full h-full object-cover rounded md:object-contain"
+											className="w-full h-full object-cover rounded 2xl:object-contain"
 											loading="lazy"
 											onError={(e) => {
 												const target = e.target as HTMLImageElement;
