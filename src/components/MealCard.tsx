@@ -32,9 +32,10 @@ const MealCard: React.FC<MealCardProps> = ({
       className={`
         transition-transform transform relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
-        ${isOutOfStock ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : "cursor-pointer hover:scale-105 hover:shadow-xl"}
+        ${isOutOfStock ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : ""}
+        ${(isOrderConfirmed && !isEditing && !isSelected) ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : ""}
+        ${(!isOutOfStock && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
         ${isSelected ? "border-4" : "border border-gray-200"}
-        ${isOrderConfirmed && !isEditing ? 'pointer-events-none' : ''}
       `}
       onClick={onCardClick}
       sx={{
