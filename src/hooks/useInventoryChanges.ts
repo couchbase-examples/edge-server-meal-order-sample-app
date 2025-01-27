@@ -1,8 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useRef } from 'react';
-import { useAppDispatch } from '../store';
-import { fetchBusinessInventory } from '../store/inventorySlice';
-import { fetchEconomyInventory } from '../store/economyInventorySlice';
+import { useEffect, useState } from 'react';
 
 interface UseInventoryChangesReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -10,10 +6,8 @@ interface UseInventoryChangesReturn {
 }
 
 const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
-  const dispatch = useAppDispatch();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [lastError, setLastError] = useState<Error | null>(null);
-  const debounceTimer = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -40,41 +34,14 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
         setConnectionStatus('connected');
         setLastError(null);
 
-        // Process the stream
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Just maintain the connection without processing changes
+        await new Promise(() => {}); // Keep connection alive
 
-          // If we get any change, update both inventories
-          if (value.length > 1) {
-            console.log('Received change:', new TextDecoder().decode(value));
-            
-            // Clear any existing timer
-            if (debounceTimer.current) {
-              clearTimeout(debounceTimer.current);
-            }
-            
-            // Set a new debounced timer
-            debounceTimer.current = setTimeout(() => {
-              if (!isEconomy) {
-                dispatch(fetchBusinessInventory());
-              } else {
-                dispatch(fetchEconomyInventory());
-              }
-            }, 300); // 300ms debounce delay
-          }
-        }
-
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
         
@@ -93,12 +60,9 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
       if (retryTimeout) {
         clearTimeout(retryTimeout);
       }
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
       setConnectionStatus('disconnected');
     };
-  }, [dispatch, isEconomy]);
+  }, [isEconomy]);
 
   return { connectionStatus, lastError };
 };

@@ -1,4 +1,4 @@
-import { configureStore, Middleware } from "@reduxjs/toolkit";
+import { configureStore, Middleware, Action, combineReducers } from "@reduxjs/toolkit";
 
 // Business slices
 import mealReducer from "./mealSlice";
@@ -56,19 +56,47 @@ const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
   return result;
 };
 
-export const store = configureStore({
-  preloadedState: loadState(),
-  reducer: {
-    // Business
-    businessMeal: mealReducer,
-    businessInventory: inventoryReducer,
+// Create middleware to debounce inventory actions
+const debounceInventoryMiddleware: Middleware = () => {
+  let timeoutId: NodeJS.Timeout | null = null;
+  
+  return next => (action) => {
+    // Check if this is an inventory fetch action
+    const actionType = (action as Action).type;
+    if (actionType?.includes('fetchInventory')) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      return new Promise((resolve) => {
+        timeoutId = setTimeout(() => {
+          resolve(next(action));
+          timeoutId = null;
+        }, 300);
+      });
+    }
+    
+    return next(action);
+  };
+};
 
-    // Economy
-    economyMeal: economyMealReducer,
-    economyInventory: economyInventoryReducer,
-  },
-  middleware: (getDefaultMiddleware) => 
-    getDefaultMiddleware().concat(persistStateMiddleware),
+const rootReducer = combineReducers({
+  // Business
+  businessMeal: mealReducer,
+  businessInventory: inventoryReducer,
+
+  // Economy
+  economyMeal: economyMealReducer,
+  economyInventory: economyInventoryReducer,
+});
+
+export const store = configureStore({
+  reducer: rootReducer,
+  preloadedState: loadState(),
+  middleware: (getDefaultMiddleware) => {
+    const middlewares = getDefaultMiddleware();
+    return middlewares.concat([persistStateMiddleware, debounceInventoryMiddleware]);
+  }
 });
 
 export type RootState = ReturnType<typeof store.getState>;

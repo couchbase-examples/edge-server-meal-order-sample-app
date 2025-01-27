@@ -13,7 +13,7 @@ import {
 } from "../store/economyMealSlice";
 import useInventoryChanges from "../hooks/useInventoryChanges";
 import { fetchBusinessInventory } from "../store/inventorySlice";
-import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
+import { addMeal, CartMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
 
@@ -70,15 +70,49 @@ function BusinessMealPage() {
 	const inventoryState = useAppSelector((state) =>
 		isEconomy ? state.economyInventory : state.businessInventory
 	);
+	// Load initial data
 	useEffect(() => {
-		if (isEconomy) {
-			dispatch(fetchEconomyMeal());
-			dispatch(fetchEconomyInventory());
-		} else {
-			dispatch(fetchBusinessMeal());
-			dispatch(fetchBusinessInventory());
-		}
+		const loadData = async () => {
+			try {
+				// First load meal data
+				if (isEconomy) {
+					await dispatch(fetchEconomyMeal()).unwrap();
+				} else {
+					await dispatch(fetchBusinessMeal()).unwrap();
+				}
+
+				// Then load inventory data
+				if (isEconomy) {
+					await dispatch(fetchEconomyInventory()).unwrap();
+				} else {
+					await dispatch(fetchBusinessInventory()).unwrap();
+				}
+			} catch (error) {
+				console.error('Failed to load initial data:', error);
+			}
+		};
+
+		loadData();
 	}, [dispatch, isEconomy]);
+
+	// Update inventory when editing state changes
+	useEffect(() => {
+		if (isEditing) {
+			const updateInventory = async () => {
+				try {
+					if (isEconomy) {
+						await dispatch(fetchEconomyInventory()).unwrap();
+					} else {
+						await dispatch(fetchBusinessInventory()).unwrap();
+					}
+				} catch (error) {
+					console.error('Failed to update inventory:', error);
+				}
+			};
+
+			updateInventory();
+		}
+	}, [dispatch, isEconomy, isEditing]);
 
 	if (mealState.status === "loading" || inventoryState.status === "loading") {
 		return <div>Loading...</div>;
@@ -165,7 +199,7 @@ function BusinessMealPage() {
 
 						const seatId = localStorage.getItem("seatId") || "";
 						const isSelected = mealState.items.some(
-							(cartItem) => cartItem.name === item.meal
+							(cartItem: CartMeal) => cartItem.name === item.meal
 						);
 
 						const orderedCount = Object.keys(

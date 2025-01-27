@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState } from "../store";
 import { removeEconomyMeal } from "../store/economyMealSlice";
-import { removeMeal } from "../store/mealSlice";
+import { CartMeal, removeMeal } from "../store/mealSlice";
 import { toSentenceCase } from "../utils/formatText";
 import OrderSummaryDialog from "./OrderSummaryDialog";
 
@@ -54,7 +54,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
           <p className="text-gray-500">No items in your order</p>
         ) : (
           <ul className="space-y-3">
-            {items.map((item, index) => (
+            {items.map((item: CartMeal, index: number) => (
               <li
                 key={index}
                 className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"

@@ -12,8 +12,9 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState, store } from "../store";
-import { updateEconomyInventory } from "../store/economyInventorySlice";
-import { updateBusinessInventory } from "../store/inventorySlice";
+import { CartMeal } from "../store/mealSlice";
+import { fetchEconomyInventory, updateEconomyInventory } from "../store/economyInventorySlice";
+import { fetchBusinessInventory, updateBusinessInventory } from "../store/inventorySlice";
 import { getOrCreateSeatId } from "../utils/createSeatId";
 import { toSentenceCase } from "../utils/formatText";
 
@@ -56,7 +57,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 	const handleConfirm = async () => {
 			try {
-				const formattedItems = items.map((item) => ({
+				const formattedItems = items.map((item: CartMeal) => ({
 					id: item.mealId,
 					category: item.category,
 				}));
@@ -71,6 +72,14 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 				// If successful
 				if (updateInventoryAction.fulfilled.match(resultAction)) {
+					// First update the inventory
+					if (isEconomy) {
+						await dispatch(fetchEconomyInventory()).unwrap();
+					} else {
+						await dispatch(fetchBusinessInventory()).unwrap();
+					}
+					
+					// Then close dialog and trigger success
 					setOpen(false);
 					onOrderSuccess();
 				} else {
@@ -110,7 +119,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error">{error}</Alert>}
-					{items.map((item, idx) => (
+					{items.map((item: CartMeal, idx: number) => (
 						<div
 							key={idx}
 							style={{ display: "flex", justifyContent: "space-between" }}

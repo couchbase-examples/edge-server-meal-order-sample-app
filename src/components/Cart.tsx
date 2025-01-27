@@ -37,17 +37,21 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [key, setKey] = useState(0);
 
-  // On mount/refresh, load confirmed items
+  // On mount/refresh, load confirmed items with a slight delay
   useEffect(() => {
-    const confirmedItems = localStorage.getItem(`cartItems-${seatClass}`);
-    if (confirmedItems) {
-      const parsedItems = JSON.parse(confirmedItems);
-      if (isEconomy) {
-        dispatch(setEconomyItems(parsedItems));
-      } else {
-        dispatch(setItems(parsedItems));
+    const timer = setTimeout(() => {
+      const confirmedItems = localStorage.getItem(`cartItems-${seatClass}`);
+      if (confirmedItems) {
+        const parsedItems = JSON.parse(confirmedItems);
+        if (isEconomy) {
+          dispatch(setEconomyItems(parsedItems));
+        } else {
+          dispatch(setItems(parsedItems));
+        }
       }
-    }
+    }, 300); // Small delay to ensure inventory is loaded first
+
+    return () => clearTimeout(timer);
   }, [dispatch, isEconomy, seatClass]);
 
   // Update localStorage when order confirmation status changes
@@ -167,7 +171,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                   <p className="text-gray-500">No meals in your cart</p>
                 ) : (
                   <ul className="space-y-3">
-                    {items.map((item, index) => (
+                    {items.map((item: CartMeal, index: number) => (
                       <li
                         key={index}
                         className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
