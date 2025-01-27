@@ -1,5 +1,6 @@
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Card, useTheme } from "@mui/material";
+import React, { useEffect, useState } from "react";
 
 interface MealCardProps {
   meal: {
@@ -16,7 +17,7 @@ interface MealCardProps {
   getImagePath: (assetId: string) => string;
 }
 
-const MealCard: React.FC<MealCardProps> = ({
+const MealCard: React.FC<MealCardProps> = React.memo(({
   meal,
   isSelected,
   isOutOfStock,
@@ -26,16 +27,31 @@ const MealCard: React.FC<MealCardProps> = ({
   getImagePath,
 }) => {
   const theme = useTheme();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showUnavailable, setShowUnavailable] = useState(isOutOfStock);
+
+  // Handle smooth transitions when availability changes
+  useEffect(() => {
+    if (showUnavailable !== isOutOfStock) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setShowUnavailable(isOutOfStock);
+        setIsTransitioning(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOutOfStock, showUnavailable]);
 
   return (
     <Card
       className={`
-        transition-transform transform relative overflow-hidden rounded-3xl shadow-lg
+        transition-all duration-300 ease-in-out relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
-        ${isOutOfStock ? "cursor-not-allowed hover:scale-100" : ""}
-        ${(!isOutOfStock && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
-        ${(!isOutOfStock && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${showUnavailable ? "cursor-not-allowed hover:scale-100" : ""}
+        ${(!showUnavailable && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${(!showUnavailable && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
         ${isSelected ? "border-4" : "border border-gray-200"}
+        ${isTransitioning ? "animate-pulse" : ""}
       `}
       onClick={onCardClick}
       sx={{
@@ -44,14 +60,21 @@ const MealCard: React.FC<MealCardProps> = ({
         },
         touchAction: "manipulation",
         borderRadius: "24px",
+        transition: "all 0.3s ease-in-out",
         ...(isSelected && {
           borderColor: theme.palette.primary.main
         })
       }}
     >
       {/* Checkmark Icon for Selected Items */}
-      {isSelected && !isOutOfStock && (
-        <div className="absolute top-2 right-2 z-10">
+      {isSelected && !showUnavailable && (
+        <div 
+          className={`
+            absolute top-2 right-2 z-10 
+            transition-all duration-300 ease-in-out
+            ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+          `}
+        >
           <CheckCircleIcon fontSize="small" color="primary" />
         </div>
       )}
@@ -60,10 +83,13 @@ const MealCard: React.FC<MealCardProps> = ({
         <img
           src={getImagePath(meal.assetid)}
           alt={meal.meal}
-          className={`w-full h-full object-cover ${
-            isOutOfStock ? "opacity-70 [filter:grayscale(100%)]" : 
-            !isSelected && (!isOrderConfirmed || isEditing) ? "opacity-70" : ""
-          }`}
+          className={`
+            w-full h-full object-cover 
+            transition-all duration-300 ease-in-out
+            ${showUnavailable ? "opacity-70 [filter:grayscale(100%)]" : 
+              !isSelected && (!isOrderConfirmed || isEditing) ? "opacity-70" : ""}
+            ${isTransitioning ? 'scale-95' : 'scale-100'}
+          `}
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -79,14 +105,29 @@ const MealCard: React.FC<MealCardProps> = ({
         <p className="text-sm text-gray-600 line-clamp-2">
           {meal.description}
         </p>
-        {isOutOfStock && (
-          <div className="mt-2 text-red-500 font-semibold text-sm">
+        {showUnavailable && (
+          <div 
+            className={`
+              mt-2 text-red-500 font-semibold text-sm 
+              transition-all duration-300 ease-in-out
+              ${isTransitioning ? 'opacity-0 transform translate-y-2' : 'opacity-100 transform translate-y-0'}
+            `}
+          >
             Currently Unavailable
           </div>
         )}
       </div>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.meal.meal === nextProps.meal.meal &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isOutOfStock === nextProps.isOutOfStock &&
+    prevProps.isOrderConfirmed === nextProps.isOrderConfirmed &&
+    prevProps.isEditing === nextProps.isEditing
+  );
+});
 
 export default MealCard;
