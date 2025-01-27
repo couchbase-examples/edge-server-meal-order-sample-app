@@ -12,13 +12,15 @@ interface ConfirmedOrderProps {
   onEditComplete: () => void;
   onOrderSuccess: () => void;
   isEditing: boolean;
+  isMobile?: boolean;
 }
 
 const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({ 
   onEditOrder,
   onEditComplete,
   onOrderSuccess,
-  isEditing 
+  isEditing,
+  isMobile = false
 }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -30,7 +32,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
   );
 
   return (
-    <div className="h-full flex flex-col p-4">
+    <div className={`${isMobile ? 'p-4' : 'h-full flex flex-col p-4'}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Confirmed Order</h2>
         {!isEditing && (
