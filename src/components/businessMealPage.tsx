@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import {
 	fetchEconomyMeal,
 	removeEconomyMeal,
 } from "../store/economyMealSlice";
+import useInventoryChanges from "../hooks/useInventoryChanges";
 import { fetchBusinessInventory } from "../store/inventorySlice";
 import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
@@ -18,37 +19,48 @@ import MealCard from "./MealCard";
 function BusinessMealPage() {
 	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
-	const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+	const [expandedCategories, setExpandedCategories] = useState<
+		Record<string, boolean>
+	>({
 		breakfast: true,
 		lunch: true,
 		dinner: true,
 		dessert: true,
 		beverage: true,
-		alcohol: true
+		alcohol: true,
 	});
 
 	const toggleCategory = (category: string) => {
-		setExpandedCategories(prev => ({
+		setExpandedCategories((prev) => ({
 			...prev,
-			[category]: !prev[category]
+			[category]: !prev[category],
 		}));
 	};
 
 	useEffect(() => {
-		const handleOrderStateChange = (event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>) => {
+		const handleOrderStateChange = (
+			event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>
+		) => {
 			setIsOrderConfirmed(event.detail.isOrderConfirmed);
 			setIsEditing(event.detail.isEditing);
 		};
 
-		window.addEventListener('orderStateChange', handleOrderStateChange as EventListener);
+		window.addEventListener(
+			"orderStateChange",
+			handleOrderStateChange as EventListener
+		);
 		return () => {
-			window.removeEventListener('orderStateChange', handleOrderStateChange as EventListener);
+			window.removeEventListener(
+				"orderStateChange",
+				handleOrderStateChange as EventListener
+			);
 		};
 	}, []);
 	const dispatch = useAppDispatch();
 	const { seatClass } = useParams();
 	// Determine which slice to use
 	const isEconomy = seatClass === "economy";
+	useInventoryChanges(isEconomy);
 
 	// If economy => economyMeal, else => businessMeal
 	const mealState = useAppSelector((state) =>
@@ -90,7 +102,10 @@ function BusinessMealPage() {
 		inventoryCount: number,
 		isSelected: boolean
 	) => {
-		if ((inventoryCount <= 0 && !isSelected) || (isOrderConfirmed && !isEditing)) {
+		if (
+			(inventoryCount <= 0 && !isSelected) ||
+			(isOrderConfirmed && !isEditing)
+		) {
 			return;
 		}
 		// If already selected, remove it; otherwise add it.
@@ -116,7 +131,7 @@ function BusinessMealPage() {
 	const renderMealCategory = (categoryName: string, items: any[]) => {
 		return (
 			<div className="w-full max-w-[2000px] mx-auto mb-4">
-				<div 
+				<div
 					className="flex items-center justify-between cursor-pointer py-2"
 					onClick={() => toggleCategory(categoryName)}
 				>
@@ -124,54 +139,60 @@ function BusinessMealPage() {
 						<Typography variant="h5" className="font-bold">
 							{categoryName.toUpperCase()}
 						</Typography>
-						{expandedCategories[categoryName] ? 
-							<KeyboardArrowUpIcon className="text-gray-600" /> : 
+						{expandedCategories[categoryName] ? (
+							<KeyboardArrowUpIcon className="text-gray-600" />
+						) : (
 							<KeyboardArrowDownIcon className="text-gray-600" />
-						}
+						)}
 					</div>
 				</div>
-				<div 
+				<div
 					className={`
 						flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4
 						transition-all duration-500 ease-in-out overflow-hidden
-						${expandedCategories[categoryName] 
-							? 'max-h-[2000px] opacity-100 pt-4 pb-12' 
-							: 'max-h-0 opacity-0 pt-0 pb-0'
+						${
+							expandedCategories[categoryName]
+								? "max-h-[2000px] opacity-100 pt-4 pb-12"
+								: "max-h-0 opacity-0 pt-0 pb-0"
 						}
 					`}
 				>
 					{items.map((item) => {
-            const matchedInventory = (inventory as any)[categoryName]?.find(
-              (invObj: any) => Object.keys(invObj)[0] === item.mealid
-            )?.[item.mealid] || { startingInventory: 0, seatsOrdered: {} };
+						const matchedInventory = (inventory as any)[categoryName]?.find(
+							(invObj: any) => Object.keys(invObj)[0] === item.mealid
+						)?.[item.mealid] || { startingInventory: 0, seatsOrdered: {} };
 
-            const seatId = localStorage.getItem('seatId') || '';
-            const isSelected = mealState.items.some(
-              (cartItem) => cartItem.name === item.meal
-            );
+						const seatId = localStorage.getItem("seatId") || "";
+						const isSelected = mealState.items.some(
+							(cartItem) => cartItem.name === item.meal
+						);
 
-            const orderedCount = Object.keys(matchedInventory.seatsOrdered)
-              .filter(id => id !== seatId).length;
-            const totalAvailable = matchedInventory.startingInventory - orderedCount;
-            const isOutOfStock = totalAvailable <= 0 && !isSelected;
+						const orderedCount = Object.keys(
+							matchedInventory.seatsOrdered
+						).filter((id) => id !== seatId).length;
+						const totalAvailable =
+							matchedInventory.startingInventory - orderedCount;
+						const isOutOfStock = totalAvailable <= 0 && !isSelected;
 
-            return (
-              <MealCard
-                key={item.mealid}
-                meal={item}
-                isSelected={isSelected}
-                isOutOfStock={isOutOfStock}
-                isOrderConfirmed={isOrderConfirmed}
-                isEditing={isEditing}
-                onCardClick={() => handleCardClick(
-                  item.meal,
-                  categoryName,
-                  item.mealid,
-                  totalAvailable,
-                  isSelected
-                )}
-                getImagePath={getImagePath}
-              />
+						return (
+							<MealCard
+								key={item.mealid}
+								meal={item}
+								isSelected={isSelected}
+								isOutOfStock={isOutOfStock}
+								isOrderConfirmed={isOrderConfirmed}
+								isEditing={isEditing}
+								onCardClick={() =>
+									handleCardClick(
+										item.meal,
+										categoryName,
+										item.mealid,
+										totalAvailable,
+										isSelected
+									)
+								}
+								getImagePath={getImagePath}
+							/>
 						);
 					})}
 				</div>
