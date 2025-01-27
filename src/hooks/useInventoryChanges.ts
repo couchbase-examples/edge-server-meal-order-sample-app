@@ -1,19 +1,75 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppDispatch } from '../store';
-import { fetchBusinessInventory } from '../store/inventorySlice';
-import { fetchEconomyInventory } from '../store/economyInventorySlice';
+import { updatePartialInventory } from '../store/inventorySlice';
+import { updatePartialInventory as updatePartialEconomyInventory } from '../store/economyInventorySlice';
 
 interface UseInventoryChangesReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   lastError: Error | null;
 }
 
+interface InventoryChange {
+  category: string;
+  mealId: string;
+  seatsOrdered: Record<string, number | null>;
+  startingInventory: number;
+}
+
 const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
   const dispatch = useAppDispatch();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [lastError, setLastError] = useState<Error | null>(null);
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const pendingChanges = useRef<Map<string, InventoryChange>>(new Map());
+  const changeBuffer = useRef<string>('');
+
+  // Memoized update function to prevent unnecessary re-renders
+  const updateInventory = useCallback(async () => {
+    if (pendingChanges.current.size === 0) return;
+    
+    try {
+      const changes = Array.from(pendingChanges.current.values());
+      pendingChanges.current.clear();
+      
+      // Use the appropriate update action based on isEconomy
+      if (isEconomy) {
+        await dispatch(updatePartialEconomyInventory(changes)).unwrap();
+      } else {
+        await dispatch(updatePartialInventory(changes)).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to update inventory:', error);
+      setLastError(error instanceof Error ? error : new Error('Failed to update inventory'));
+    }
+  }, [dispatch, isEconomy]);
+
+  // Process changes from the document
+  const processDocumentChanges = useCallback((doc: any) => {
+    if (!doc) return;
+    
+    Object.entries(doc).forEach(([category, items]: [string, any]) => {
+      if (Array.isArray(items)) {
+        items.forEach((item: any) => {
+          const mealId = Object.keys(item)[0];
+          if (mealId) {
+            const key = `${category}-${mealId}`;
+            const mealData = item[mealId];
+            
+            // Always update if we have new data
+            pendingChanges.current.set(key, {
+              category,
+              mealId,
+              seatsOrdered: mealData.seatsOrdered || {},
+              startingInventory: mealData.startingInventory
+            });
+          }
+        });
+      }
+    });
+
+    // Immediately process updates
+    updateInventory();
+  }, [updateInventory]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -53,23 +109,31 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
           const { done, value } = await reader.read();
           if (done) break;
 
-          // If we get any change, update both inventories
-          if (value.length > 1) {
-            console.log('Received change:', new TextDecoder().decode(value));
+          if (value) {
+            // Append new data to buffer
+            changeBuffer.current += new TextDecoder().decode(value);
             
-            // Clear any existing timer
-            if (debounceTimer.current) {
-              clearTimeout(debounceTimer.current);
+            // Process complete JSON objects
+            let startIndex = 0;
+            let endIndex: number;
+            
+            while ((endIndex = changeBuffer.current.indexOf('\n', startIndex)) !== -1) {
+              const line = changeBuffer.current.slice(startIndex, endIndex).trim();
+              if (line) {
+                try {
+                  const change = JSON.parse(line);
+                  if (change.doc) {
+                    processDocumentChanges(change.doc);
+                  }
+                } catch (error) {
+                  console.error('Error processing change:', error);
+                }
+              }
+              startIndex = endIndex + 1;
             }
             
-            // Set a new debounced timer
-            debounceTimer.current = setTimeout(() => {
-              if (!isEconomy) {
-                dispatch(fetchBusinessInventory());
-              } else {
-                dispatch(fetchEconomyInventory());
-              }
-            }, 300); // 300ms debounce delay
+            // Keep remaining incomplete data in buffer
+            changeBuffer.current = changeBuffer.current.slice(startIndex);
           }
         }
 
@@ -93,12 +157,11 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
       if (retryTimeout) {
         clearTimeout(retryTimeout);
       }
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
+      changeBuffer.current = '';
+      pendingChanges.current.clear();
       setConnectionStatus('disconnected');
     };
-  }, [dispatch, isEconomy]);
+  }, [dispatch, isEconomy, processDocumentChanges]);
 
   return { connectionStatus, lastError };
 };
