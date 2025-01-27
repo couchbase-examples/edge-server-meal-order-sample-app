@@ -42,6 +42,9 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
     }
   }, [isOutOfStock, showUnavailable]);
 
+  // Determine if we should show the item as faded
+  const shouldShowFaded = !isSelected && isOrderConfirmed && !isEditing;
+
   return (
     <Card
       className={`
@@ -86,8 +89,8 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
           className={`
             w-full h-full object-cover 
             transition-all duration-300 ease-in-out
-            ${showUnavailable ? "opacity-70 [filter:grayscale(100%)]" : 
-              !isSelected && (!isOrderConfirmed || isEditing) ? "opacity-70" : ""}
+            ${showUnavailable ? "opacity-70 [filter:grayscale(100%)]" : ""}
+            ${shouldShowFaded ? "opacity-70" : ""}
             ${isTransitioning ? 'scale-95' : 'scale-100'}
           `}
           loading="lazy"
