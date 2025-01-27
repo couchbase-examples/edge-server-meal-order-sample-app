@@ -22,9 +22,10 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
       try {
         const credentials = btoa('seatuser:password');
         setConnectionStatus('connecting');
+        const inventoryCategory = isEconomy ? 'economyinventory' : 'businessinventory';
 
         const response = await fetch(
-          '/american234.AmericanAirlines.AA234/_changes?feed=continuous&include_docs=true&heartbeat=600&since=now',
+          `/american234.AmericanAirlines.AA234/_changes?feed=continuous&include_docs=true&heartbeat=600&since=now&filter=doc_ids&doc_ids=${inventoryCategory}`,
           {
             headers: {
               'Authorization': `Basic ${credentials}`,
