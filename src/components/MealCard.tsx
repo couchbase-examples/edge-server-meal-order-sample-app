@@ -1,5 +1,5 @@
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { Card } from "@mui/material";
+import { Card, useTheme } from "@mui/material";
 
 interface MealCardProps {
   meal: {
@@ -25,15 +25,16 @@ const MealCard: React.FC<MealCardProps> = ({
   onCardClick,
   getImagePath,
 }) => {
+  const theme = useTheme();
 
   return (
     <Card
       className={`
         transition-transform transform relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
-        ${isOutOfStock ? "cursor-not-allowed grayscale hover:scale-100" : "cursor-pointer hover:scale-105 hover:shadow-xl"}
-        ${isSelected ? "border-4 border-red-500" : "border border-gray-200"}
-        ${isOrderConfirmed && !isEditing ? 'pointer-events-none opacity-50' : ''}
+        ${isOutOfStock ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : "cursor-pointer hover:scale-105 hover:shadow-xl"}
+        ${isSelected ? "border-4" : "border border-gray-200"}
+        ${isOrderConfirmed && !isEditing ? 'pointer-events-none' : ''}
       `}
       onClick={onCardClick}
       sx={{
@@ -42,6 +43,9 @@ const MealCard: React.FC<MealCardProps> = ({
         },
         touchAction: "manipulation",
         borderRadius: "24px",
+        ...(isSelected && {
+          borderColor: theme.palette.primary.main
+        })
       }}
     >
       {/* Checkmark Icon for Selected Items */}
@@ -51,7 +55,7 @@ const MealCard: React.FC<MealCardProps> = ({
         </div>
       )}
 
-      <div className="h-full w-1/3 2xl:w-full 2xl:h-4/5">
+      <div className="h-full w-1/4 2xl:w-full 2xl:h-3/4">
         <img
           src={getImagePath(meal.assetid)}
           alt={meal.meal}

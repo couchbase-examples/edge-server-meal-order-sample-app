@@ -15,6 +15,7 @@ import useInventoryChanges from "../hooks/useInventoryChanges";
 import { fetchBusinessInventory } from "../store/inventorySlice";
 import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
+import { toSentenceCase } from "../utils/formatText";
 
 function BusinessMealPage() {
 	const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -137,7 +138,7 @@ function BusinessMealPage() {
 				>
 					<div className="flex items-center gap-2">
 						<Typography variant="h5" className="font-bold">
-							{categoryName.toUpperCase()}
+							{toSentenceCase(categoryName)}
 						</Typography>
 						{expandedCategories[categoryName] ? (
 							<KeyboardArrowUpIcon className="text-gray-600" />
@@ -149,11 +150,11 @@ function BusinessMealPage() {
 				<div
 					className={`
 						flex flex-col 2xl:grid 2xl:grid-cols-3 gap-3 sm:gap-4
-						transition-all duration-500 ease-in-out overflow-hidden
+						transition-[max-height,padding] duration-500 ease-in-out overflow-hidden
 						${
 							expandedCategories[categoryName]
-								? "max-h-[2000px] opacity-100 pt-4 pb-12"
-								: "max-h-0 opacity-0 pt-0 pb-0"
+								? "max-h-[2000px] pt-4 pb-12"
+								: "max-h-0 pt-0 pb-0"
 						}
 					`}
 				>

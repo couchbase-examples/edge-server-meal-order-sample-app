@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppDispatch } from '../store';
 import { fetchBusinessInventory } from '../store/inventorySlice';
 import { fetchEconomyInventory } from '../store/economyInventorySlice';
@@ -13,6 +13,7 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
   const dispatch = useAppDispatch();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [lastError, setLastError] = useState<Error | null>(null);
+  const debounceTimer = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -55,11 +56,20 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
           // If we get any change, update both inventories
           if (value.length > 1) {
             console.log('Received change:', new TextDecoder().decode(value));
-            if (!isEconomy) {
-              dispatch(fetchBusinessInventory());
-            } else {
-              dispatch(fetchEconomyInventory());
+            
+            // Clear any existing timer
+            if (debounceTimer.current) {
+              clearTimeout(debounceTimer.current);
             }
+            
+            // Set a new debounced timer
+            debounceTimer.current = setTimeout(() => {
+              if (!isEconomy) {
+                dispatch(fetchBusinessInventory());
+              } else {
+                dispatch(fetchEconomyInventory());
+              }
+            }, 300); // 300ms debounce delay
           }
         }
 
@@ -82,6 +92,9 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
       abortController.abort();
       if (retryTimeout) {
         clearTimeout(retryTimeout);
+      }
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
       }
       setConnectionStatus('disconnected');
     };

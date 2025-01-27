@@ -1,10 +1,12 @@
-import React from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../store";
+import EditIcon from "@mui/icons-material/Edit";
 import { Button, useTheme } from "@mui/material";
-import { removeMeal } from "../store/mealSlice";
-import { removeEconomyMeal } from "../store/economyMealSlice";
+import React from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
+import { RootState } from "../store";
+import { removeEconomyMeal } from "../store/economyMealSlice";
+import { removeMeal } from "../store/mealSlice";
+import { toSentenceCase } from "../utils/formatText";
 import OrderSummaryDialog from "./OrderSummaryDialog";
 
 interface ConfirmedOrderProps {
@@ -41,8 +43,9 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
             color="primary"
             onClick={onEditOrder}
             size="small"
+            startIcon={<EditIcon />}
           >
-            Edit Order
+            Edit
           </Button>
         )}
       </div>
@@ -58,7 +61,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
               >
                 <div>
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-500">{item.category}</p>
+                  <p className="text-sm text-gray-500">{toSentenceCase(item.category)}</p>
                 </div>
                 {isEditing && (
                   <button
