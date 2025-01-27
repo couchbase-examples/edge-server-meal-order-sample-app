@@ -32,9 +32,9 @@ const MealCard: React.FC<MealCardProps> = ({
       className={`
         transition-transform transform relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
-        ${isOutOfStock ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : ""}
-        ${(isOrderConfirmed && !isEditing && !isSelected) ? "cursor-not-allowed hover:scale-100 [filter:grayscale(100%)]" : ""}
-        ${(!isOutOfStock && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${isOutOfStock ? "cursor-not-allowed hover:scale-100" : ""}
+        ${(!isOutOfStock && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${(!isOutOfStock && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
         ${isSelected ? "border-4" : "border border-gray-200"}
       `}
       onClick={onCardClick}
@@ -60,7 +60,10 @@ const MealCard: React.FC<MealCardProps> = ({
         <img
           src={getImagePath(meal.assetid)}
           alt={meal.meal}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${
+            isOutOfStock ? "opacity-70 [filter:grayscale(100%)]" : 
+            !isSelected && (!isOrderConfirmed || isEditing) ? "opacity-70" : ""
+          }`}
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -70,7 +73,7 @@ const MealCard: React.FC<MealCardProps> = ({
       </div>
 
       <div className="p-4 flex-1 2xl:h-1/5 flex flex-col justify-center">
-        <h3 className="text-base sm:text-lg font-semibold mb-1">
+        <h3 className="text-base sm:text-lg font-semibold mb-1 text-gray-700">
           {meal.meal}
         </h3>
         <p className="text-sm text-gray-600 line-clamp-2">
