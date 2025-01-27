@@ -20,7 +20,6 @@ import { toSentenceCase } from "../utils/formatText";
 function BusinessMealPage() {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [updateKey, setUpdateKey] = useState(0); // Force re-render key
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({
@@ -35,8 +34,6 @@ function BusinessMealPage() {
   const dispatch = useAppDispatch();
   const { seatClass } = useParams();
   const isEconomy = seatClass === "economy";
-  
-  // Call hook but don't use the return value since we're handling updates through Redux
   useInventoryChanges(isEconomy);
 
   const mealState = useAppSelector((state) =>
@@ -46,13 +43,42 @@ function BusinessMealPage() {
     isEconomy ? state.economyInventory : state.businessInventory
   );
 
-  const getImagePath = useCallback((assetId: string) => {
-    try {
-      return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
-    } catch {
-      return new URL(`../assets/images/default.png`, import.meta.url).href;
-    }
+  const toggleCategory = useCallback((category: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
   }, []);
+
+  useEffect(() => {
+    const handleOrderStateChange = (
+      event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>
+    ) => {
+      setIsOrderConfirmed(event.detail.isOrderConfirmed);
+      setIsEditing(event.detail.isEditing);
+    };
+
+    window.addEventListener(
+      "orderStateChange",
+      handleOrderStateChange as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "orderStateChange",
+        handleOrderStateChange as EventListener
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isEconomy) {
+      dispatch(fetchEconomyMeal());
+      dispatch(fetchEconomyInventory());
+    } else {
+      dispatch(fetchBusinessMeal());
+      dispatch(fetchBusinessInventory());
+    }
+  }, [dispatch, isEconomy]);
 
   const handleCardClick = useCallback((
     mealName: string,
@@ -79,6 +105,14 @@ function BusinessMealPage() {
         dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
     }
   }, [dispatch, isEconomy, isOrderConfirmed, isEditing]);
+
+  const getImagePath = useCallback((assetId: string) => {
+    try {
+      return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
+    } catch {
+      return new URL(`../assets/images/default.png`, import.meta.url).href;
+    }
+  }, []);
 
   // Calculate availability for a meal item
   const calculateAvailability = useCallback((categoryName: string, mealId: string, inventory: any) => {
@@ -109,17 +143,22 @@ function BusinessMealPage() {
     };
   }, []);
 
-  const toggleCategory = useCallback((category: string) => {
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
-  }, []);
+  if (mealState.status === "loading" || inventoryState.status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (!mealState.data || !inventoryState.data) {
+    return <div>No data available</div>;
+  }
+
+  const { breakfast, lunch, dinner, dessert, beverage, alcohol } =
+    mealState.data;
+  const inventory = inventoryState.data;
 
   // A helper to render each category
-  const renderMealCategory = useCallback((categoryName: string, items: any[], inventory: any) => {
+  const renderMealCategory = (categoryName: string, items: any[]) => {
     return (
-      <div className="w-full max-w-[2000px] mx-auto mb-4" key={`${categoryName}-${updateKey}`}>
+      <div className="w-full max-w-[2000px] mx-auto mb-4">
         <div
           className="flex items-center justify-between cursor-pointer py-2"
           onClick={() => toggleCategory(categoryName)}
@@ -159,7 +198,7 @@ function BusinessMealPage() {
 
             return (
               <MealCard
-                key={`${item.mealid}-${updateKey}`}
+                key={`${item.mealid}-${isOutOfStock ? 'out' : 'in'}`}
                 meal={item}
                 isSelected={isSelected}
                 isOutOfStock={isOutOfStock}
@@ -181,65 +220,16 @@ function BusinessMealPage() {
         </div>
       </div>
     );
-  }, [updateKey, expandedCategories, mealState.items, isOrderConfirmed, isEditing, calculateAvailability, handleCardClick, toggleCategory, getImagePath]);
-
-  useEffect(() => {
-    const handleOrderStateChange = (
-      event: CustomEvent<{ isOrderConfirmed: boolean; isEditing: boolean }>
-    ) => {
-      setIsOrderConfirmed(event.detail.isOrderConfirmed);
-      setIsEditing(event.detail.isEditing);
-    };
-
-    window.addEventListener(
-      "orderStateChange",
-      handleOrderStateChange as EventListener
-    );
-    return () => {
-      window.removeEventListener(
-        "orderStateChange",
-        handleOrderStateChange as EventListener
-      );
-    };
-  }, []);
-
-  // Force update when inventory changes
-  useEffect(() => {
-    if (inventoryState.data) {
-      setUpdateKey(prev => prev + 1);
-    }
-  }, [inventoryState.data]);
-
-  useEffect(() => {
-    if (isEconomy) {
-      dispatch(fetchEconomyMeal());
-      dispatch(fetchEconomyInventory());
-    } else {
-      dispatch(fetchBusinessMeal());
-      dispatch(fetchBusinessInventory());
-    }
-  }, [dispatch, isEconomy]);
-
-  if (mealState.status === "loading" || inventoryState.status === "loading") {
-    return <div>Loading...</div>;
-  }
-
-  if (!mealState.data || !inventoryState.data) {
-    return <div>No data available</div>;
-  }
-
-  const { breakfast, lunch, dinner, dessert, beverage, alcohol } =
-    mealState.data;
-  const inventory = inventoryState.data;
+  };
 
   return (
     <div>
-      {renderMealCategory("breakfast", breakfast, inventory)}
-      {renderMealCategory("lunch", lunch, inventory)}
-      {renderMealCategory("dinner", dinner, inventory)}
-      {renderMealCategory("dessert", dessert, inventory)}
-      {renderMealCategory("beverage", beverage, inventory)}
-      {renderMealCategory("alcohol", alcohol, inventory)}
+      {renderMealCategory("breakfast", breakfast)}
+      {renderMealCategory("lunch", lunch)}
+      {renderMealCategory("dinner", dinner)}
+      {renderMealCategory("dessert", dessert)}
+      {renderMealCategory("beverage", beverage)}
+      {renderMealCategory("alcohol", alcohol)}
     </div>
   );
 }

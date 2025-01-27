@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppDispatch } from '../store';
 import { updatePartialInventory } from '../store/inventorySlice';
 import { updatePartialInventory as updatePartialEconomyInventory } from '../store/economyInventorySlice';
+import { MEAL_CATEGORIES } from '../constants';
 
 interface UseInventoryChangesReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -12,7 +13,7 @@ interface UseInventoryChangesReturn {
 interface InventoryChange {
   category: string;
   mealId: string;
-  seatsOrdered: Record<string, number | null>;
+  seatsOrdered: Record<string, number>;
   startingInventory: number;
 }
 
@@ -20,43 +21,22 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
   const dispatch = useAppDispatch();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [lastError, setLastError] = useState<Error | null>(null);
-  const pendingChanges = useRef<Map<string, InventoryChange>>(new Map());
   const changeBuffer = useRef<string>('');
-
-  // Memoized update function to prevent unnecessary re-renders
-  const updateInventory = useCallback(async () => {
-    if (pendingChanges.current.size === 0) return;
-    
-    try {
-      const changes = Array.from(pendingChanges.current.values());
-      pendingChanges.current.clear();
-      
-      // Use the appropriate update action based on isEconomy
-      if (isEconomy) {
-        await dispatch(updatePartialEconomyInventory(changes)).unwrap();
-      } else {
-        await dispatch(updatePartialInventory(changes)).unwrap();
-      }
-    } catch (error) {
-      console.error('Failed to update inventory:', error);
-      setLastError(error instanceof Error ? error : new Error('Failed to update inventory'));
-    }
-  }, [dispatch, isEconomy]);
 
   // Process changes from the document
   const processDocumentChanges = useCallback((doc: any) => {
     if (!doc) return;
     
-    Object.entries(doc).forEach(([category, items]: [string, any]) => {
-      if (Array.isArray(items)) {
-        items.forEach((item: any) => {
+    const changes: InventoryChange[] = [];
+    
+    // Process all categories
+    MEAL_CATEGORIES.forEach(category => {
+      if (doc[category] && Array.isArray(doc[category])) {
+        doc[category].forEach((item: any) => {
           const mealId = Object.keys(item)[0];
           if (mealId) {
-            const key = `${category}-${mealId}`;
             const mealData = item[mealId];
-            
-            // Always update if we have new data
-            pendingChanges.current.set(key, {
+            changes.push({
               category,
               mealId,
               seatsOrdered: mealData.seatsOrdered || {},
@@ -67,9 +47,15 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
       }
     });
 
-    // Immediately process updates
-    updateInventory();
-  }, [updateInventory]);
+    // Dispatch updates immediately if we have changes
+    if (changes.length > 0) {
+      if (isEconomy) {
+        dispatch(updatePartialEconomyInventory(changes));
+      } else {
+        dispatch(updatePartialInventory(changes));
+      }
+    }
+  }, [dispatch, isEconomy]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -158,7 +144,6 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
         clearTimeout(retryTimeout);
       }
       changeBuffer.current = '';
-      pendingChanges.current.clear();
       setConnectionStatus('disconnected');
     };
   }, [dispatch, isEconomy, processDocumentChanges]);

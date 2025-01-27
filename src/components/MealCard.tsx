@@ -27,29 +27,29 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
   getImagePath,
 }) => {
   const theme = useTheme();
-  const [prevOutOfStock, setPrevOutOfStock] = useState(isOutOfStock);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showUnavailable, setShowUnavailable] = useState(isOutOfStock);
 
   // Handle smooth transitions when availability changes
   useEffect(() => {
-    if (prevOutOfStock !== isOutOfStock) {
+    if (showUnavailable !== isOutOfStock) {
       setIsTransitioning(true);
       const timer = setTimeout(() => {
-        setPrevOutOfStock(isOutOfStock);
+        setShowUnavailable(isOutOfStock);
         setIsTransitioning(false);
-      }, 300); // Match transition duration
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOutOfStock, prevOutOfStock]);
+  }, [isOutOfStock, showUnavailable]);
 
   return (
     <Card
       className={`
         transition-all duration-300 ease-in-out relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
-        ${isOutOfStock ? "cursor-not-allowed hover:scale-100" : ""}
-        ${(!isOutOfStock && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
-        ${(!isOutOfStock && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${showUnavailable ? "cursor-not-allowed hover:scale-100" : ""}
+        ${(!showUnavailable && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${(!showUnavailable && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
         ${isSelected ? "border-4" : "border border-gray-200"}
         ${isTransitioning ? "animate-pulse" : ""}
       `}
@@ -67,7 +67,7 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
       }}
     >
       {/* Checkmark Icon for Selected Items */}
-      {isSelected && !isOutOfStock && (
+      {isSelected && !showUnavailable && (
         <div 
           className={`
             absolute top-2 right-2 z-10 
@@ -86,7 +86,7 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
           className={`
             w-full h-full object-cover 
             transition-all duration-300 ease-in-out
-            ${isOutOfStock ? "opacity-70 [filter:grayscale(100%)]" : 
+            ${showUnavailable ? "opacity-70 [filter:grayscale(100%)]" : 
               !isSelected && (!isOrderConfirmed || isEditing) ? "opacity-70" : ""}
             ${isTransitioning ? 'scale-95' : 'scale-100'}
           `}
@@ -105,7 +105,7 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
         <p className="text-sm text-gray-600 line-clamp-2">
           {meal.description}
         </p>
-        {isOutOfStock && (
+        {showUnavailable && (
           <div 
             className={`
               mt-2 text-red-500 font-semibold text-sm 

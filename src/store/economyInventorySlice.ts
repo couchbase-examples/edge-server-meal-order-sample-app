@@ -3,6 +3,7 @@ import { BusinessInventoryDoc, InventoryItem } from "../types";
 import { api } from '../services/api';
 import { store } from ".";
 import { removeEconomyMeal } from "./economyMealSlice";
+import { MEAL_CATEGORIES, isValidCategory } from "../constants";
 
 interface EconomyInventoryState {
   data: BusinessInventoryDoc | null;
@@ -23,11 +24,6 @@ interface UpdateOrderPayload {
   }>;
   seatUserId: string;
 }
-
-// Type guard to check if a category exists in BusinessInventoryDoc
-const isValidCategory = (category: string): category is keyof Omit<BusinessInventoryDoc, '_id' | '_rev' | 'type' | 'flightno' | 'leg' | 'aircraft'> => {
-  return ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'].includes(category);
-};
 
 // API helper functions
 const getCurrentInventory = async (): Promise<BusinessInventoryDoc> => {
@@ -50,7 +46,7 @@ export const fetchEconomyInventory = createAsyncThunk<BusinessInventoryDoc>(
 interface PartialInventoryUpdate {
   category: string;
   mealId: string;
-  seatsOrdered: Record<string, number | null>;
+  seatsOrdered: Record<string, number>;
   startingInventory: number;
 }
 
@@ -66,24 +62,33 @@ export const updatePartialInventory = createAsyncThunk(
     const updatedInventory = { ...currentInventory };
     const seatId = localStorage.getItem("seatId") || "";
     
+    // Track categories that have changes
+    const changedCategories = new Set<string>();
+    
+    // First pass: collect all categories that need updating
     updates.forEach(update => {
       if (isValidCategory(update.category)) {
-        updatedInventory[update.category] = updatedInventory[update.category].map((item: InventoryItem) => {
+        changedCategories.add(update.category);
+      }
+    });
+
+    // Second pass: update all items in changed categories
+    changedCategories.forEach(category => {
+      if (isValidCategory(category)) {
+        updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
           const mealKey = Object.keys(item)[0];
-          if (mealKey === update.mealId) {
-            // Count active orders (non-null values)
-            const activeOrders = Object.entries(update.seatsOrdered)
-              .filter(([, value]) => value !== null && value !== undefined)
-              .length;
-            
-            const isNowOutOfStock = update.startingInventory - activeOrders <= 0;
+          const update = updates.find(u => u.mealId === mealKey);
+          
+          if (update) {
+            // Count active orders
+            const orderedCount = Object.keys(update.seatsOrdered).length;
+            const isNowOutOfStock = update.startingInventory - orderedCount <= 0;
             
             // Check if this item is in the current user's cart and should be removed
             if (isNowOutOfStock) {
               const cartItems = state.economyMeal.items;
               const itemInCart = cartItems.find(item => item.mealId === mealKey);
               if (itemInCart && !update.seatsOrdered[seatId]) {
-                // Remove from cart if it's now out of stock and not ordered by current user
                 dispatch(removeEconomyMeal(itemInCart.name));
               }
             }
@@ -112,27 +117,23 @@ export const updateEconomyInventory = createAsyncThunk(
       const revId = currentInventory._rev;
       const updatedInventory = { ...currentInventory };
 
-      const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
-      
-      // First, remove any existing orders for this user
-      categoriesToUpdate.forEach(category => {
-        if (isValidCategory(category)) {
-          updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
-            const mealKey = Object.keys(item)[0];
-            if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
-              const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
-              // Set to null instead of deleting to track removed orders
-              newSeatsOrdered[payload.seatUserId] = null;
-              return {
-                [mealKey]: {
-                  ...item[mealKey],
-                  seatsOrdered: newSeatsOrdered
-                }
-              };
-            }
-            return item;
-          });
-        }
+      // First, remove any existing orders for this user from ALL categories
+      MEAL_CATEGORIES.forEach(category => {
+        updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+          const mealKey = Object.keys(item)[0];
+          if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+            const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+            // Delete the key instead of setting to null
+            delete newSeatsOrdered[payload.seatUserId];
+            return {
+              [mealKey]: {
+                ...item[mealKey],
+                seatsOrdered: newSeatsOrdered
+              }
+            };
+          }
+          return item;
+        });
       });
 
       // Then add new orders
