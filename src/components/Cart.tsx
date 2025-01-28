@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { removeMeal, setItems, resetOrder, CartMeal } from "../store/mealSlice";
-import { removeEconomyMeal, setEconomyItems, resetEconomyOrder } from "../store/economyMealSlice";
+import { Alert, Snackbar } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { RootState } from "../store";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
+import { RootState } from "../store";
+import { removeEconomyMeal, resetEconomyOrder, setEconomyItems } from "../store/economyMealSlice";
+import { CartMeal, removeMeal, resetOrder, setItems } from "../store/mealSlice";
+import { toSentenceCase } from "../utils/formatText";
 import ConfirmedOrder from "./ConfirmedOrder";
 import OrderSummaryDialog from "./OrderSummaryDialog";
-import { Snackbar, Alert } from "@mui/material";
 
 interface CartProps {
   isMobile?: boolean;
@@ -173,7 +174,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                       >
                         <div>
                           <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-gray-500">{item.category}</p>
+                          <p className="text-sm text-gray-500">{toSentenceCase(item.category)}</p>
                         </div>
                         <button
                           className="px-3 py-1 rounded-full hover:bg-opacity-10 active:bg-opacity-20 touch-manipulation"

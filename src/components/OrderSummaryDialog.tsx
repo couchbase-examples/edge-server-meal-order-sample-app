@@ -1,21 +1,21 @@
-import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, store } from "../store";
-import { useTheme } from "@mui/material/styles";
-import { updateBusinessInventory } from "../store/inventorySlice";
-import { updateEconomyInventory } from "../store/economyInventorySlice";
-
 import {
+	Alert,
 	Button,
+	CircularProgress,
 	Dialog,
 	DialogActions,
 	DialogContent,
 	DialogTitle,
-	CircularProgress,
-	Alert,
 } from "@mui/material";
-import { getOrCreateSeatId } from "../utils/createSeatId";
+import { useTheme } from "@mui/material/styles";
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
+import { RootState, store } from "../store";
+import { updateEconomyInventory } from "../store/economyInventorySlice";
+import { updateBusinessInventory } from "../store/inventorySlice";
+import { getOrCreateSeatId } from "../utils/createSeatId";
+import { toSentenceCase } from "../utils/formatText";
 
 interface OrderSummaryDialogProps {
 	onOrderSuccess: () => void;
@@ -117,7 +117,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 						>
 							<div>
 								<p className="font-medium">{item.name}</p>
-								<p className="text-sm text-gray-500">{item.category}</p>
+								<p className="text-sm text-gray-500">{toSentenceCase(item.category)}</p>
 							</div>
 						</div>
 					))}

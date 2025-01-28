@@ -1,31 +1,29 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { BusinessInventoryDoc, InventoryItem } from "../types";
 import { api } from '../services/api';
+import { store } from ".";
+import { removeEconomyMeal } from "./economyMealSlice";
+import { MEAL_CATEGORIES, isValidCategory } from "../constants";
 
 interface EconomyInventoryState {
-	data: BusinessInventoryDoc | null;
-	status: "idle" | "loading" | "succeeded" | "failed";
-	error: string | null;
+  data: BusinessInventoryDoc | null;
+  status: "idle" | "loading" | "succeeded" | "failed";
+  error: string | null;
 }
 
 const initialState: EconomyInventoryState = {
-	data: null,
-	status: "idle",
-	error: null,
+  data: null,
+  status: "idle",
+  error: null,
 };
 
 interface UpdateOrderPayload {
-	items: Array<{
-		id: string;
-		category: string;
-	}>;
-	seatUserId: string;
+  items: Array<{
+    id: string;
+    category: string;
+  }>;
+  seatUserId: string;
 }
-
-// Type guard to check if a category exists in BusinessInventoryDoc
-const isValidCategory = (category: string): category is keyof Omit<BusinessInventoryDoc, '_id' | '_rev' | 'type' | 'flightno' | 'leg' | 'aircraft'> => {
-  return ['breakfast', 'lunch', 'dinner', 'dessert', 'beverage', 'alcohol'].includes(category);
-};
 
 // API helper functions
 const getCurrentInventory = async (): Promise<BusinessInventoryDoc> => {
@@ -45,40 +43,100 @@ export const fetchEconomyInventory = createAsyncThunk<BusinessInventoryDoc>(
   getCurrentInventory
 );
 
+interface PartialInventoryUpdate {
+  category: string;
+  mealId: string;
+  seatsOrdered: Record<string, number>;
+  startingInventory: number;
+}
+
+// New thunk for partial inventory updates
+export const updatePartialInventory = createAsyncThunk(
+  "economyInventory/updatePartialInventory",
+  async (updates: PartialInventoryUpdate[], { getState, dispatch }) => {
+    const state = getState() as ReturnType<typeof store.getState>;
+    const currentInventory = state.economyInventory.data;
+    
+    if (!currentInventory) return null;
+
+    const updatedInventory = { ...currentInventory };
+    const seatId = localStorage.getItem("seatId") || "";
+    
+    // Track categories that have changes
+    const changedCategories = new Set<string>();
+    
+    // First pass: collect all categories that need updating
+    updates.forEach(update => {
+      if (isValidCategory(update.category)) {
+        changedCategories.add(update.category);
+      }
+    });
+
+    // Second pass: update all items in changed categories
+    changedCategories.forEach(category => {
+      if (isValidCategory(category)) {
+        updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+          const mealKey = Object.keys(item)[0];
+          const update = updates.find(u => u.mealId === mealKey);
+          
+          if (update) {
+            // Count active orders
+            const orderedCount = Object.keys(update.seatsOrdered).length;
+            const isNowOutOfStock = update.startingInventory - orderedCount <= 0;
+            
+            // Check if this item is in the current user's cart and should be removed
+            if (isNowOutOfStock) {
+              const cartItems = state.economyMeal.items;
+              const itemInCart = cartItems.find(item => item.mealId === mealKey);
+              if (itemInCart && !update.seatsOrdered[seatId]) {
+                dispatch(removeEconomyMeal(itemInCart.name));
+              }
+            }
+
+            return {
+              [mealKey]: {
+                seatsOrdered: update.seatsOrdered,
+                startingInventory: update.startingInventory
+              }
+            };
+          }
+          return item;
+        });
+      }
+    });
+
+    return updatedInventory;
+  }
+);
+
 export const updateEconomyInventory = createAsyncThunk(
   "economyInventory/updateEconomyInventory",
   async (payload: UpdateOrderPayload, { rejectWithValue }) => {
     try {
-      // Get current inventory
       const currentInventory = await getCurrentInventory();
       const revId = currentInventory._rev;
-
-      // Create updated inventory object
       const updatedInventory = { ...currentInventory };
 
-      // Remove existing orders for this user
-      const categoriesToUpdate = new Set(payload.items.map(item => item.category.toLowerCase()));
-      
-      categoriesToUpdate.forEach(category => {
-        if (isValidCategory(category)) {
-          updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
-            const mealKey = Object.keys(item)[0];
-            if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
-              const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
-              delete newSeatsOrdered[payload.seatUserId];
-              return {
-                [mealKey]: {
-                  ...item[mealKey],
-                  seatsOrdered: newSeatsOrdered
-                }
-              };
-            }
-            return item;
-          });
-        }
+      // First, remove any existing orders for this user from ALL categories
+      MEAL_CATEGORIES.forEach(category => {
+        updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
+          const mealKey = Object.keys(item)[0];
+          if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
+            const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
+            // Delete the key instead of setting to null
+            delete newSeatsOrdered[payload.seatUserId];
+            return {
+              [mealKey]: {
+                ...item[mealKey],
+                seatsOrdered: newSeatsOrdered
+              }
+            };
+          }
+          return item;
+        });
       });
 
-      // Add new orders
+      // Then add new orders
       payload.items.forEach((item) => {
         const category = item.category.toLowerCase();
         if (isValidCategory(category)) {
@@ -96,7 +154,6 @@ export const updateEconomyInventory = createAsyncThunk(
         }
       });
 
-      // Update inventory and get fresh data
       await updateInventoryData(updatedInventory, revId);
       return getCurrentInventory();
     } catch (error) {
@@ -108,38 +165,43 @@ export const updateEconomyInventory = createAsyncThunk(
 );
 
 const economyInventorySlice = createSlice({
-	name: "economyInventory",
-	initialState,
-	reducers: {},
-	extraReducers: (builder) => {
-		builder
-			.addCase(fetchEconomyInventory.pending, (state) => {
-				state.status = "loading";
-				state.error = null;
-			})
-			.addCase(fetchEconomyInventory.fulfilled, (state, action) => {
-				state.status = "succeeded";
-				state.data = action.payload;
-				state.error = null;
-			})
-			.addCase(fetchEconomyInventory.rejected, (state, action) => {
-				state.status = "failed";
-				state.error = action.error.message ?? "Failed to fetch economy inventory";
-			})
-			.addCase(updateEconomyInventory.pending, (state) => {
-				state.status = "loading";
-				state.error = null;
-			})
-			.addCase(updateEconomyInventory.fulfilled, (state, action) => {
-				state.status = "succeeded";
-				state.data = action.payload;
-				state.error = null;
-			})
-			.addCase(updateEconomyInventory.rejected, (state, action) => {
-				state.status = "failed";
-				state.error = action.error.message ?? "Failed to update economy inventory";
-			});
-	},
+  name: "economyInventory",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEconomyInventory.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchEconomyInventory.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.data = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchEconomyInventory.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message ?? "Failed to fetch economy inventory";
+      })
+      .addCase(updateEconomyInventory.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(updateEconomyInventory.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.data = action.payload;
+        state.error = null;
+      })
+      .addCase(updateEconomyInventory.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message ?? "Failed to update economy inventory";
+      })
+      .addCase(updatePartialInventory.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.data = action.payload;
+        }
+      });
+  },
 });
 
 export default economyInventorySlice.reducer;
