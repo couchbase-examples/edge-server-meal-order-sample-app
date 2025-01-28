@@ -180,7 +180,7 @@ function BusinessMealPage() {
             transition-[max-height,padding] duration-500 ease-in-out overflow-hidden
             ${
               expandedCategories[categoryName]
-                ? "max-h-[2000px] pt-4 pb-12"
+                ? "max-h-[2000px] pt-4 pb-12 px-2"
                 : "max-h-0 pt-0 pb-0"
             }
           `}
