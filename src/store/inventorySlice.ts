@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { BusinessInventoryDoc, InventoryItem } from "../types";
 import { api } from '../services/api';
@@ -112,35 +113,37 @@ export const updatePartialInventory = createAsyncThunk(
 export const updateBusinessInventory = createAsyncThunk(
   "inventory/updateBusinessInventory",
   async (payload: UpdateOrderPayload, { rejectWithValue }) => {
-    try {
-      const currentInventory = await getCurrentInventory();
-      const revId = currentInventory._rev;
-      const updatedInventory = { ...currentInventory };
+    // Helper function to do the "remove old orders + add new orders"
+    const applyOrdersToInventory = (
+      doc: BusinessInventoryDoc,
+      seatUserId: string,
+      items: Array<{ id: string; category: string }>
+    ): BusinessInventoryDoc => {
+      const updatedDoc = { ...doc };
 
-      // First, remove any existing orders for this user from ALL categories
-      MEAL_CATEGORIES.forEach(category => {
-        updatedInventory[category] = updatedInventory[category].map((item: InventoryItem) => {
-          const mealKey = Object.keys(item)[0];
-          if (item[mealKey].seatsOrdered && item[mealKey].seatsOrdered[payload.seatUserId]) {
-            const newSeatsOrdered = { ...item[mealKey].seatsOrdered };
-            // Delete the key instead of setting to null
-            delete newSeatsOrdered[payload.seatUserId];
+      // Remove all existing orders for this user
+      MEAL_CATEGORIES.forEach((category) => {
+        updatedDoc[category] = updatedDoc[category].map((it: InventoryItem) => {
+          const mealKey = Object.keys(it)[0];
+          if (it[mealKey].seatsOrdered && it[mealKey].seatsOrdered[seatUserId]) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [seatUserId]: _, ...rest } = it[mealKey].seatsOrdered;
             return {
               [mealKey]: {
-                ...item[mealKey],
-                seatsOrdered: newSeatsOrdered
-              }
+                ...it[mealKey],
+                seatsOrdered: rest,
+              },
             };
           }
-          return item;
+          return it;
         });
       });
 
-      // Then add new orders
-      payload.items.forEach((item) => {
+      // Add new orders
+      items.forEach((item) => {
         const category = item.category.toLowerCase();
         if (isValidCategory(category)) {
-          const categoryItems = updatedInventory[category];
+          const categoryItems = updatedDoc[category];
           const mealItem = categoryItems.find(
             (mealId: InventoryItem) => Object.keys(mealId)[0] === item.id
           );
@@ -149,16 +152,91 @@ export const updateBusinessInventory = createAsyncThunk(
             if (!mealItem[mealKey].seatsOrdered) {
               mealItem[mealKey].seatsOrdered = {};
             }
-            mealItem[mealKey].seatsOrdered[payload.seatUserId] = 1;
+            mealItem[mealKey].seatsOrdered[seatUserId] = 1;
           }
         }
       });
 
-      await updateInventoryData(updatedInventory, revId);
-      return getCurrentInventory();
-    } catch (error) {
+      return updatedDoc;
+    };
+
+    // Helper function to see if any payload item is truly out of stock 
+    // based on the latest doc from the server.
+    const findOutOfStockItems = (
+      doc: BusinessInventoryDoc,
+      items: Array<{ id: string; category: string }>
+    ) => {
+      const outOfStockItems: { id: string; category: string }[] = [];
+
+      items.forEach(({ id, category }) => {
+        const lowerCategory = category.toLowerCase();
+        if (isValidCategory(lowerCategory)) {
+          const categoryItems = doc[lowerCategory];
+          const mealItem = categoryItems.find(
+            (mi: InventoryItem) => Object.keys(mi)[0] === id
+          );
+          if (mealItem) {
+            const mealKey = Object.keys(mealItem)[0];
+            const { seatsOrdered, startingInventory } = mealItem[mealKey];
+            const totalSeatsOrdered = Object.keys(seatsOrdered ?? {}).length;
+            if (startingInventory - totalSeatsOrdered <= 0) {
+              outOfStockItems.push({
+                id: mealKey,
+                category: lowerCategory,
+              });
+            }
+          }
+        }
+      });
+      return outOfStockItems;
+    };
+
+    try {
+      while (true) {
+        try {
+          // 1. Get the current doc
+          const currentDoc = await getCurrentInventory();
+          // 2. Check if items we want to order are already out of stock
+          const outOfStock = findOutOfStockItems(currentDoc, payload.items);
+          if (outOfStock.length > 0) {
+            // If anything is out of stock, reject immediately
+            return rejectWithValue({
+              message: "Some items are already out of stock",
+              outOfStockItems: outOfStock,
+            });
+          }
+
+          // 3. Mutate the doc with remove+add orders
+          const updatedInventory = applyOrdersToInventory(
+            currentDoc,
+            payload.seatUserId,
+            payload.items
+          );
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          // 4. Attempt to save (PUT) the doc
+          await updateInventoryData(updatedInventory, currentDoc._rev);
+
+          // If PUT succeeds, fetch again and return the new doc
+          return getCurrentInventory();
+        } catch (error: any) {
+          const parsed = JSON.parse(error.message);
+          const newstatus = parsed.status;
+          if (newstatus=== 409) {
+            console.log("Conflict detected, retrying...");
+            continue;
+          } else {
+            return rejectWithValue(
+              error instanceof Error
+                ? error.message
+                : "Failed to update inventory"
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.log("Error in updateBusinessInventory:", err);
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update inventory"
+        err instanceof Error ? err.message : "Failed to update inventory"
       );
     }
   }
