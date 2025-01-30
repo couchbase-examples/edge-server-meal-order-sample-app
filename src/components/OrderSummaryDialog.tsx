@@ -12,8 +12,11 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState, store } from "../store";
-import { updateEconomyInventory } from "../store/economyInventorySlice";
-import { updateBusinessInventory } from "../store/inventorySlice";
+import { updateEconomyInventory, clearOutOfStockItems as clearOutOfStockItemsEconomy } from "../store/economyInventorySlice";
+import {
+	updateBusinessInventory,
+	clearOutOfStockItems,
+} from "../store/inventorySlice";
 import { getOrCreateSeatId } from "../utils/createSeatId";
 import { toSentenceCase } from "../utils/formatText";
 
@@ -34,8 +37,8 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const { items } = useSelector((state: RootState) =>
 		isEconomy ? state.economyMeal : state.businessMeal
 	);
-	const { status, error } = useSelector((state: RootState) =>
-		isEconomy ? state.economyInventory : state.businessInventory
+	const { status, error, outOfStockItems } = useSelector(
+		(state: RootState) => isEconomy ? state.economyInventory: state.businessInventory
 	);
 
 	// Decide which action to dispatch
@@ -50,41 +53,54 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const handleOpen = () => {
 		setOpen(true);
 	};
-	const handleClose = () => {
+
+	// 1) Dispatch clearOutOfStockItems here, then close dialog
+	const cleanupOutOfStock = () => {
+		if (isEconomy) {
+			dispatch(clearOutOfStockItemsEconomy());
+		} else {
+			dispatch(clearOutOfStockItems());
+		}
 		setOpen(false);
 	};
 
 	const handleConfirm = async () => {
-			try {
-				const formattedItems = items.map((item) => ({
-					id: item.mealId,
-					category: item.category,
-				}));
+		try {
+			const formattedItems = items.map((item) => ({
+				id: item.mealId,
+				category: item.category,
+				name: item.name,
+			}));
 
-				// Update inventory using Redux action
-				const resultAction = await dispatch(
-					updateInventoryAction({
-						items: formattedItems,
-						seatUserId,
-					})
-				);
+			const resultAction = await dispatch(
+				updateInventoryAction({
+					items: formattedItems,
+					seatUserId,
+				})
+			);
 
-				// If successful
-				if (updateInventoryAction.fulfilled.match(resultAction)) {
-					setOpen(false);
-					onOrderSuccess();
-				} else {
-					// If there's an error, throw it
-					throw resultAction.payload || resultAction.error;
-				}
-			} catch (error) {
-				console.error("Failed to update inventory:", error);
+			// If successful
+			if (updateInventoryAction.fulfilled.match(resultAction)) {
+				setOpen(false);
+				onOrderSuccess();
+			} else {
+				// If there's an error, throw it
+				throw resultAction.payload || resultAction.error;
 			}
+		} catch (error) {
+			console.error("Failed to update inventory:", error);
+		}
 	};
 
-	if (items.length === 0) {
+	const handleClose = () => {
+		setOpen(false);
+		// Optionally clear out-of-stock items on normal close too
+		dispatch(clearOutOfStockItems());
+	};
+
+	if (items.length === 0 && outOfStockItems.length === 0) {
 		return null;
-	}
+	  }
 
 	return (
 		<div>
@@ -96,20 +112,37 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 				Confirm
 			</button>
 
-			<Dialog 
-				open={open} 
-				onClose={handleClose} 
+			<Dialog
+				open={open}
+				onClose={handleClose}
 				fullWidth 
 				maxWidth="sm"
 				PaperProps={{
 					style: {
-						borderRadius: '8px'
-					}
+						borderRadius: "8px",
+					},
 				}}
 			>
 				<DialogTitle>Order Summary</DialogTitle>
 				<DialogContent>
-					{error && <Alert severity="error">{error}</Alert>}
+					{error && outOfStockItems.length === 0 && (
+						<Alert severity="error">{error}</Alert>
+					)}
+
+					{outOfStockItems.length > 0 && (
+						<Alert severity="warning">
+							<strong>Sorry! the following items are no longer available. You may make an alternative selection and then confirm your order:</strong>
+							<ul style={{ marginTop: "8px" }}>
+								{outOfStockItems.map(({ name, category }, i) => (
+									<li key={i}>
+										<strong>{name}</strong> ({toSentenceCase(category)})
+									</li>
+								))}
+							</ul>
+						</Alert>
+					)}
+
+					{/* List out the items the user is ordering */}
 					{items.map((item, idx) => (
 						<div
 							key={idx}
@@ -117,27 +150,43 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 						>
 							<div>
 								<p className="font-medium">{item.name}</p>
-								<p className="text-sm text-gray-500">{toSentenceCase(item.category)}</p>
+								<p className="text-sm text-gray-500">
+									{toSentenceCase(item.category)}
+								</p>
 							</div>
 						</div>
 					))}
 				</DialogContent>
+
 				<DialogActions>
-					<Button
+					{/* Cancel or normal close */}
+					{!outOfStockItems.length && <Button
 						onClick={handleClose}
 						color="inherit"
 						disabled={status === "loading"}
 					>
 						Cancel
-					</Button>
-					<Button
+					</Button>}
+					{outOfStockItems.length > 0 && (
+						<Button
+							onClick={cleanupOutOfStock}
+							variant="outlined"
+							color="primary"
+							disabled={status === "loading"}
+						>
+							OK
+						</Button>
+					)}
+
+					{/* Confirm button */}
+					{!outOfStockItems.length && <Button
 						onClick={handleConfirm}
 						variant="contained"
 						color="primary"
 						disabled={status === "loading"}
 					>
 						{status === "loading" ? <CircularProgress size={24} /> : "Confirm"}
-					</Button>
+					</Button>}
 				</DialogActions>
 			</Dialog>
 		</div>
