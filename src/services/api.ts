@@ -1,6 +1,6 @@
-const BASE_URL = import.meta.env.DEV 
-  ? '' // Empty for development (will use proxy)
-  : 'https://localhost:60000'; // Your production URL
+const BASE_URL = import.meta.env.DEV
+  ? '' 
+  : import.meta.env.VITE_API_BASE_URL;
 
 export const api = {
   fetch: async (endpoint: string, options: RequestInit = {}) => {
@@ -24,5 +24,5 @@ export const api = {
     }
 
     return response.json();
-  }
+  },
 };
