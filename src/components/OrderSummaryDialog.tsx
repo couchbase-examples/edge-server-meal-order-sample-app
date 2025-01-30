@@ -127,7 +127,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 					{outOfStockItems.length > 0 && (
 						<Alert severity="warning">
-							<strong>Some items became unavailable:</strong>
+							<strong>Sorry! the following items are no longer available. You may make an alternative selection and then confirm your order:</strong>
 							<ul style={{ marginTop: "8px" }}>
 								{outOfStockItems.map(({ name, category }, i) => (
 									<li key={i}>
@@ -135,7 +135,6 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 									</li>
 								))}
 							</ul>
-							<p style={{ marginTop: "8px" }}>Please revisit your selection.</p>
 						</Alert>
 					)}
 
@@ -171,7 +170,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 							color="primary"
 							disabled={status === "loading"}
 						>
-							Close
+							OK
 						</Button>
 					)}
 
