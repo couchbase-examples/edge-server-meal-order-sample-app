@@ -231,7 +231,6 @@ export const updateEconomyInventory = createAsyncThunk(
           // If conflict, loop again
           const parsed = JSON.parse(error.message);
           if (parsed.status === 409) {
-            console.log("Conflict detected, retrying...");
             continue;
           } else {
             return rejectWithValue(

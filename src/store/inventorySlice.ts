@@ -243,7 +243,6 @@ export const updateBusinessInventory = createAsyncThunk(
 					const parsed = JSON.parse(error.message);
 					const newstatus = parsed.status;
 					if (newstatus === 409) {
-						console.log("Conflict detected, retrying...");
 						continue;
 					} else {
 						return rejectWithValue(
@@ -255,7 +254,6 @@ export const updateBusinessInventory = createAsyncThunk(
 				}
 			}
 		} catch (err) {
-			console.log("Error in updateBusinessInventory:", err);
 			return rejectWithValue(
 				err instanceof Error ? err.message : "Failed to update inventory"
 			);
