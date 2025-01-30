@@ -234,8 +234,6 @@ export const updateBusinessInventory = createAsyncThunk(
 						payload.items
 					);
 
-					// Remove it later
-					await new Promise((resolve) => setTimeout(resolve, 5000));
 					// 4. Attempt to save (PUT) the doc
 					await updateInventoryData(updatedInventory, currentDoc._rev);
 
@@ -298,10 +296,6 @@ const inventorySlice = createSlice({
 				state.data = action.payload;
 				state.error = null;
 			})
-			// .addCase(updateBusinessInventory.rejected, (state, action) => {
-			//   state.status = "failed";
-			//   state.error = action.error.message ?? "Failed to update inventory";
-			// })
 			.addCase(updatePartialInventory.fulfilled, (state, action) => {
 				if (action.payload) {
 					state.data = action.payload;

@@ -12,7 +12,7 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState, store } from "../store";
-import { updateEconomyInventory } from "../store/economyInventorySlice";
+import { updateEconomyInventory, clearOutOfStockItems as clearOutOfStockItemsEconomy } from "../store/economyInventorySlice";
 import {
 	updateBusinessInventory,
 	clearOutOfStockItems,
@@ -38,7 +38,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		isEconomy ? state.economyMeal : state.businessMeal
 	);
 	const { status, error, outOfStockItems } = useSelector(
-		(state: RootState) => state.businessInventory
+		(state: RootState) => isEconomy ? state.economyInventory: state.businessInventory
 	);
 
 	// Decide which action to dispatch
@@ -56,7 +56,11 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 	// 1) Dispatch clearOutOfStockItems here, then close dialog
 	const cleanupOutOfStock = () => {
-		dispatch(clearOutOfStockItems()); // <--- Clears outOfStock array in Redux
+		if (isEconomy) {
+			dispatch(clearOutOfStockItemsEconomy());
+		} else {
+			dispatch(clearOutOfStockItems());
+		}
 		setOpen(false);
 	};
 
