@@ -94,9 +94,9 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		dispatch(clearOutOfStockItems());
 	};
 
-	if (items.length === 0) {
+	if (items.length === 0 && outOfStockItems.length === 0) {
 		return null;
-	}
+	  }
 
 	return (
 		<div>
