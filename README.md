@@ -25,7 +25,7 @@ Follow these steps to set up and run the application locally:
 3. ** Create .env File
    Create a .env file in the project root and define your backend URL:
    ```bash
-   VITE_API_BASE_URL="https://localhost:60000"
+   EDGE_SERVER_BASE_URL="https://localhost:60000"
    ```
    Change the value to match your desired backend URL. Note that **Vite only** exposes variables prefixed with **VITE_ to** client-side code.
 

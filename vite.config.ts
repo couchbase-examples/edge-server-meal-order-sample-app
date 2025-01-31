@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/american234.AmericanAirlines.AA234': {
-          target: env.VITE_API_BASE_URL, // use the loaded env here
+          target: env.EDGE_SERVER_BASE_URL, // use the loaded env here
           secure: false,
           changeOrigin: true,
           ws: true,

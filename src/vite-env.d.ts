@@ -2,7 +2,7 @@
 
 // This part extends the built-in ImportMetaEnv interface.
 interface ImportMetaEnv {
-    readonly VITE_API_BASE_URL: string;
+    readonly EDGE_SERVER_BASE_URL: string;
     // Add more env variables as needed...
   }
   
