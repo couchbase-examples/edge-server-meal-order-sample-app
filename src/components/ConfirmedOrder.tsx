@@ -17,7 +17,7 @@ interface ConfirmedOrderProps {
   isMobile?: boolean;
 }
 
-const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({ 
+const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
   onEditOrder,
   onEditComplete,
   onOrderSuccess,
@@ -36,7 +36,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
   return (
     <div className={`${isMobile ? 'p-4' : 'h-full flex flex-col p-4'}`}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Confirmed Order</h2>
+        <h2 className="text-xl font-semibold">{isEditing ? "Your Cart" : "Confirmed Order"}</h2>
         {!isEditing && (
           <Button
             variant="outlined"
@@ -82,7 +82,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
       {isEditing && (
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 mt-4">
           <div className="flex gap-2">
-            {items.length > 0 && <button 
+            {items.length > 0 && <button
               className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
               onClick={onEditComplete}
             >
