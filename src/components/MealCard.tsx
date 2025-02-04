@@ -51,8 +51,8 @@ const MealCard: React.FC<MealCardProps> = React.memo(({
         transition-all duration-300 ease-in-out relative overflow-hidden rounded-3xl shadow-lg
         2xl:aspect-square flex 2xl:flex-col
         ${showUnavailable ? "cursor-not-allowed hover:scale-100" : ""}
-        ${(!showUnavailable && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
-        ${(!showUnavailable && isSelected) ? "cursor-pointer hover:scale-105 hover:shadow-xl" : ""}
+        ${(!showUnavailable && !isSelected && (!isOrderConfirmed || isEditing)) ? "cursor-pointer hover:scale-104 hover:shadow-xl" : ""}
+        ${(!showUnavailable && isSelected) ? "cursor-pointer hover:scale-104 hover:shadow-xl" : ""}
         ${isSelected ? "border-4" : "border border-gray-200"}
         ${isTransitioning ? "animate-pulse" : ""}
       `}
