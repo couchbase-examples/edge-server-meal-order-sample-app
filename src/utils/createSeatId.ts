@@ -1,4 +1,8 @@
-export function getOrCreateSeatId() {
+/**
+ * Retrieves the existing seat ID from local storage or generates a new one if it doesn't exist. 
+ * @returns {string} The seat ID, either retrieved from local storage or newly generated.
+ */
+export function retrieveOrGenerateSeatId() {
     let seatId = localStorage.getItem("seatId");
     if (!seatId) {
       // Generate a random seatId

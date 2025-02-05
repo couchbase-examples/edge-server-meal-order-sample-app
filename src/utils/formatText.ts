@@ -2,10 +2,6 @@
  * Converts a string to sentence case (first letter capitalized, rest lowercase)
  * @param text The string to convert
  * @returns The string in sentence case
- * @example
- * toSentenceCase('hello WORLD') // returns 'Hello world'
- * toSentenceCase('HELLO') // returns 'Hello'
- * toSentenceCase('hello') // returns 'Hello'
  */
 export function toSentenceCase(text: string): string {
   if (!text) return text;

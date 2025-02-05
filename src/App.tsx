@@ -10,7 +10,7 @@ import Navbar from "./components/Navbar";
 import LeftSideBar from "./components/LeftSideBar";
 import Cart from "./components/Cart";
 import { businessTheme, economyTheme } from "./themes";
-import { getOrCreateSeatId } from "./utils/createSeatId";
+import { retrieveOrGenerateSeatId } from "./utils/createSeatId";
 import "./index.css";
 import MealPage from "./components/MealPage";
 
@@ -21,7 +21,7 @@ export default function App() {
 	// Decide which theme to use
 	const selectedTheme = seatClass === "economy" ? economyTheme : businessTheme;
 
-	getOrCreateSeatId();
+	retrieveOrGenerateSeatId();
 
 	const isDesktop = useMediaQuery(selectedTheme.breakpoints.up("md"));
 	const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);

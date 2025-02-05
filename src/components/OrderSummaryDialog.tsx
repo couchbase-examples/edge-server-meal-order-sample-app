@@ -17,7 +17,7 @@ import {
 	updateBusinessInventory,
 	clearOutOfStockItems,
 } from "../store/inventorySlice";
-import { getOrCreateSeatId } from "../utils/createSeatId";
+import { retrieveOrGenerateSeatId } from "../utils/createSeatId";
 import { toSentenceCase } from "../utils/formatText";
 
 interface OrderSummaryDialogProps {
@@ -46,7 +46,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		? updateEconomyInventory
 		: updateBusinessInventory;
 
-	const seatUserId = getOrCreateSeatId();
+	const seatUserId = retrieveOrGenerateSeatId();
 
 	const [open, setOpen] = useState(false);
 
