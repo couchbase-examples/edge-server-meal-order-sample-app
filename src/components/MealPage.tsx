@@ -17,7 +17,7 @@ import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
 
-function BusinessMealPage() {
+function MealPage() {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<
@@ -234,4 +234,4 @@ function BusinessMealPage() {
   );
 }
 
-export default BusinessMealPage;
+export default MealPage;

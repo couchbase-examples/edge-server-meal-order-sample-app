@@ -12,7 +12,7 @@ import Cart from "./components/Cart";
 import { businessTheme, economyTheme } from "./themes";
 import { getOrCreateSeatId } from "./utils/createSeatId";
 import "./index.css";
-import BusinessMealPage from "./components/businessMealPage";
+import MealPage from "./components/MealPage";
 
 export default function App() {
 	// Read the seatClass from the URL (possible "business" or "economy")
@@ -54,7 +54,7 @@ export default function App() {
 					>
 						<main className="flex-1">
 							<div className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
-								<BusinessMealPage />
+								<MealPage />
 							</div>
 						</main>
 					</div>
