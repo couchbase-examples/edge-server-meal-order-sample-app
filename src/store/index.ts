@@ -26,6 +26,12 @@ const loadState = () => {
   }
 };
 
+// Clear persisted state from localStorage
+const clearPersistedState = () => {
+  localStorage.removeItem('cbmd:businessMeal');
+  localStorage.removeItem('cbmd:economyMeal');
+};
+
 // Create middleware to save state changes to localStorage
 const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
   const result = next(action);
@@ -55,6 +61,9 @@ const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
   
   return result;
 };
+
+// Clear local storage keys related to the app's state when the application starts
+clearPersistedState();
 
 export const store = configureStore({
   preloadedState: loadState(),
