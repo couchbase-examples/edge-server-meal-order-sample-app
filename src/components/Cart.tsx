@@ -23,15 +23,15 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
 
   // Initialize states from localStorage
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(() => {
-    const saved = localStorage.getItem(`isOrderConfirmed-${seatClass}`);
+    const saved = localStorage.getItem(`cbmd:isOrderConfirmed-${seatClass}`);
     return saved ? JSON.parse(saved) : false;
   });
   const [isEditing, setIsEditing] = useState(() => {
-    const wasEditing = localStorage.getItem(`isEditing-${seatClass}`);
+    const wasEditing = localStorage.getItem(`cbmd:isEditing-${seatClass}`);
     return wasEditing === 'true';
   });
   const [tempItems, setTempItems] = useState<CartMeal[]>(() => {
-    const saved = localStorage.getItem(`tempItems-${seatClass}`);
+    const saved = localStorage.getItem(`cbmd:tempItems-${seatClass}`);
     return saved ? JSON.parse(saved) : [];
   });
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -39,7 +39,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
 
   // On mount/refresh, load confirmed items
   useEffect(() => {
-    const confirmedItems = localStorage.getItem(`cartItems-${seatClass}`);
+    const confirmedItems = localStorage.getItem(`cbmd:cartItems-${seatClass}`);
     if (confirmedItems) {
       const parsedItems = JSON.parse(confirmedItems);
       if (isEconomy) {
@@ -53,7 +53,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   // Update localStorage when order confirmation status changes
   useEffect(() => {
     if (!isEditing) {
-      localStorage.setItem(`isOrderConfirmed-${seatClass}`, JSON.stringify(isOrderConfirmed));
+      localStorage.setItem(`cbmd:isOrderConfirmed-${seatClass}`, JSON.stringify(isOrderConfirmed));
     }
   }, [isOrderConfirmed, isEditing, seatClass]);
 
@@ -75,7 +75,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   // Save items to localStorage only when explicitly confirmed
   useEffect(() => {
     if (!isEditing && isOrderConfirmed) {
-      localStorage.setItem(`cartItems-${seatClass}`, JSON.stringify(items));
+      localStorage.setItem(`cbmd:cartItems-${seatClass}`, JSON.stringify(items));
     }
   }, [isEditing, isOrderConfirmed, items, seatClass]);
 
@@ -84,8 +84,8 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
     const currentItems = [...items];
     setTempItems(currentItems);
     setIsEditing(true);
-    localStorage.setItem(`isEditing-${seatClass}`, 'true');
-    localStorage.setItem(`tempItems-${seatClass}`, JSON.stringify(currentItems));
+    localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'true');
+    localStorage.setItem(`cbmd:tempItems-${seatClass}`, JSON.stringify(currentItems));
   };
 
   // Restore the original items when cancelling edit mode
@@ -96,16 +96,16 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
       dispatch(setItems(tempItems));
     }
     setIsEditing(false);
-    localStorage.setItem(`isEditing-${seatClass}`, 'false');
-    localStorage.removeItem(`tempItems-${seatClass}`);
+    localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'false');
+    localStorage.removeItem(`cbmd:tempItems-${seatClass}`);
   };
 
   // Handle successful order confirmation
   const handleOrderConfirmation = () => {
     setIsOrderConfirmed(true);
     setIsEditing(false);
-    localStorage.setItem(`isEditing-${seatClass}`, 'false');
-    localStorage.removeItem(`tempItems-${seatClass}`);
+    localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'false');
+    localStorage.removeItem(`cbmd:tempItems-${seatClass}`);
     setTempItems([]);
     setSnackbarOpen(true);
     setKey(prev => prev + 1);

@@ -122,7 +122,7 @@ function BusinessMealPage() {
 
     if (!matchedInventory) return { totalAvailable: 0, isOutOfStock: true };
 
-    const seatId = localStorage.getItem("seatId") || "";
+    const seatId = localStorage.getItem("cbmd:seatId") || "";
     const seatsOrdered = matchedInventory.seatsOrdered || {};
     
     // Count only active orders (non-null values)

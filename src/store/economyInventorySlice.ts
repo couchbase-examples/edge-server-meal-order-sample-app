@@ -70,7 +70,7 @@ export const updatePartialInventory = createAsyncThunk(
     if (!currentInventory) return null;
 
     const updatedInventory = { ...currentInventory };
-    const seatId = localStorage.getItem("seatId") || "";
+    const seatId = localStorage.getItem("cbmd:seatId") || "";
     
     // Track categories that have changes
     const changedCategories = new Set<string>();

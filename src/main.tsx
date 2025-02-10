@@ -6,6 +6,12 @@ import App from "./App";
 import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+Object.keys(window.localStorage).forEach((key) => {
+	if (key.startsWith("cbmd:")) {
+		window.localStorage.removeItem(key);
+	}
+});
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<BrowserRouter>
 		<React.StrictMode>
