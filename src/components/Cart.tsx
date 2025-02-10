@@ -202,7 +202,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                       </button>
                     )}
                     <div className={!isOrderConfirmed && !isEditing ? "flex-1" : "w-full"}>
-                      <OrderSummaryDialog onOrderSuccess={handleOrderConfirmation} />
+                      <OrderSummaryDialog onOrderSuccess={handleOrderConfirmation} isEditing={false}/>
                     </div>
                   </div>
                 </div>

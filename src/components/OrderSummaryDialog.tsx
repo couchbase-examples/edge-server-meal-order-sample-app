@@ -22,10 +22,12 @@ import { toSentenceCase } from "../utils/formatText";
 
 interface OrderSummaryDialogProps {
 	onOrderSuccess: () => void;
+	isEditing: boolean;
 }
 
 const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	onOrderSuccess,
+	isEditing
 }) => {
 	const theme = useTheme();
 	const dispatch = useDispatch<typeof store.dispatch>();
@@ -98,7 +100,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 		dispatch(clearOutOfStockItems());
 	};
 
-	if (items.length === 0 && outOfStockItems.length === 0) {
+	if (items.length === 0 && outOfStockItems.length === 0 && !isEditing) {
 		return null;
 	  }
 
