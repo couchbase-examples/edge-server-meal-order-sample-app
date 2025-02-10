@@ -102,15 +102,24 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
 
   // Handle successful order confirmation
   const handleOrderConfirmation = () => {
-    setIsOrderConfirmed(true);
+    if (items.length === 0) {
+      setIsOrderConfirmed(false);
+    } else {
+      setIsOrderConfirmed(true);
+    }
     setIsEditing(false);
     localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'false');
     localStorage.removeItem(`cbmd:tempItems-${seatClass}`);
+    if (items.length > 0) {
+      localStorage.setItem(`cbmd:cartItems-${seatClass}`, JSON.stringify(items));
+    } else {
+      localStorage.removeItem(`cbmd:cartItems-${seatClass}`);
+    }
     setTempItems([]);
     setSnackbarOpen(true);
     setKey(prev => prev + 1);
   };
-
+  
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
