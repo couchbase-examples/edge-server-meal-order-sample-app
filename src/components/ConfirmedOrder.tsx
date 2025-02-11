@@ -82,14 +82,14 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
       {isEditing && (
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 mt-4">
           <div className="flex gap-2">
-            {items.length > 0 && <button
+            {<button
               className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
               onClick={onEditComplete}
             >
               Cancel
             </button>}
             <div className="flex-1">
-              <OrderSummaryDialog onOrderSuccess={onOrderSuccess} />
+              <OrderSummaryDialog onOrderSuccess={onOrderSuccess} isEditing={true} />
             </div>
           </div>
         </div>
