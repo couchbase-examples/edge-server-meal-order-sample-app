@@ -5,12 +5,25 @@ import { store } from "./store/index";
 import App from "./App";
 import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import timestampData from "../public/timestamp.json";
 
-Object.keys(window.localStorage).forEach((key) => {
-	if (key.startsWith("cbmd:")) {
-		window.localStorage.removeItem(key);
+// Function to perform the conditional cleanup
+const performConditionalCleanup = () => {
+	const timestamp: { timestamp: string } = timestampData;
+	const appTimestamp = timestamp.timestamp;// Get the timestamp from the JSON file
+	const storedTimestamp = localStorage.getItem("cbmd:storedTimestamp");
+  
+	if (appTimestamp !== storedTimestamp) {
+	  Object.keys(window.localStorage).forEach((key) => {
+		if (key.startsWith("cbmd:")) {
+		  window.localStorage.removeItem(key);
+		}
+	  });
+	  localStorage.setItem("cbmd:storedTimestamp", appTimestamp || ""); // Update stored timestamp
 	}
-});
+  };
+
+performConditionalCleanup();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<BrowserRouter>

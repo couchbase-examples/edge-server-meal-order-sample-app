@@ -1,4 +1,5 @@
 import { configureStore, Middleware } from "@reduxjs/toolkit";
+import timestampData from "../../public/timestamp.json";
 
 // Business slices
 import mealReducer from "./mealSlice";
@@ -28,8 +29,15 @@ const loadState = () => {
 
 // Clear persisted state from localStorage
 const clearPersistedState = () => {
-  localStorage.removeItem('cbmd:businessMeal');
-  localStorage.removeItem('cbmd:economyMeal');
+  
+  const timestamp: { timestamp: string } = timestampData;
+  const appTimestamp = timestamp.timestamp; // Get the timestamp from the JSON file
+	const storedTimestamp = localStorage.getItem("cbmd:storedTimestamp");
+
+  if (appTimestamp !== storedTimestamp) {
+    localStorage.removeItem('cbmd:businessMeal');
+    localStorage.removeItem('cbmd:economyMeal');
+  }
 };
 
 // Create middleware to save state changes to localStorage
