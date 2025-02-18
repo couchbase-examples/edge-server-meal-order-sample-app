@@ -1,4 +1,3 @@
-/* src/App.tsx */
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -14,7 +13,7 @@ import { retrieveOrGenerateSeatId } from "./utils/createSeatId";
 import "./index.css";
 import MealPage from "./components/MealPage";
 
-export default function App() {
+const App = () => {
 	// Read the seatClass from the URL (possible "business" or "economy")
 	const { seatClass } = useParams();
 
@@ -42,12 +41,12 @@ export default function App() {
 			<div className="flex flex-col h-screen">
 				<Navbar onMenuClick={handleSidebarToggle} />
 
-				{/* Main container (under the 45px navbar) */}
+				{/* Main container */}
 				<div className="flex flex-1 h-[calc(100vh-45px)] relative">
-					{/* Left SideBar (always "permanent" so it does NOT overlay) */}
+					{/* Left SideBar */}
 					<LeftSideBar isSidebarOpen={isSidebarOpen} />
 
-					{/* Main content area: shift right so it's never hidden */}
+					{/* Main content area */}
 					<div
 						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
 						style={{ marginLeft: `${sidebarWidth}px` }}
@@ -71,3 +70,5 @@ export default function App() {
 		</ThemeProvider>
 	);
 }
+
+export default App;

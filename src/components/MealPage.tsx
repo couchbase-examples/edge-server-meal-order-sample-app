@@ -17,7 +17,7 @@ import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
 
-function MealPage() {
+const MealPage = () => {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<

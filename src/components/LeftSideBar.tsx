@@ -23,7 +23,7 @@ interface LeftSideBarProps {
 	isSidebarOpen: boolean;
 }
 
-export default function LeftSideBar({ isSidebarOpen }: LeftSideBarProps) {
+const LeftSideBar: React.FC<LeftSideBarProps> = ({ isSidebarOpen }) => {
 	const theme: Theme = useTheme(); // Access the selected (business/economy) theme
 	const drawerWidth = isSidebarOpen ? 240 : 64;
 
@@ -170,3 +170,6 @@ function SidebarContent({
 		</Box>
 	);
 }
+
+export default LeftSideBar;
+

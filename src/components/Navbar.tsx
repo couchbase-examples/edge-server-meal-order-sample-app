@@ -6,7 +6,7 @@ interface NavbarProps {
 	onMenuClick: () => void;
 }
 
-export default function Navbar({ onMenuClick }: NavbarProps) {
+const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 	return (
 		<AppBar
 			position="fixed"
@@ -39,3 +39,5 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 		</AppBar>
 	);
 }
+
+export default Navbar;
