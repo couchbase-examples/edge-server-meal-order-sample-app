@@ -29,17 +29,15 @@ const App = () => {
 		setIsSidebarOpen(isDesktop);
 	}, [isDesktop]);
 
-	const handleSidebarToggle = () => {
+	const toggleSidebar = () => {
 		setIsSidebarOpen((prev) => !prev);
 	};
-
-	const sidebarWidth = isSidebarOpen ? 240 : 64;
 
 	return (
 		<ThemeProvider theme={selectedTheme}>
 			<CssBaseline />
 			<div className="flex flex-col h-screen">
-				<Navbar onMenuClick={handleSidebarToggle} />
+				<Navbar onMenuClick={toggleSidebar} />
 
 				{/* Main container */}
 				<div className="flex flex-1 h-[calc(100vh-45px)] relative">
@@ -49,7 +47,7 @@ const App = () => {
 					{/* Main content area */}
 					<div
 						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
-						style={{ marginLeft: `${sidebarWidth}px` }}
+						style={{ marginLeft: `${isSidebarOpen ? 240 : 64}px` }}
 					>
 						<main className="flex-1">
 							<div className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
@@ -69,6 +67,6 @@ const App = () => {
 			</div>
 		</ThemeProvider>
 	);
-}
+};
 
 export default App;

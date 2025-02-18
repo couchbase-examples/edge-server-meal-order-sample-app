@@ -1,22 +1,28 @@
-import { render } from '@testing-library/react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import '@testing-library/jest-dom';
-import { Provider } from 'react-redux';
-import { store } from './store/index';
-import App from './App';
+import { render } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import App from "./App";
+import { Provider } from "react-redux";
+import { store } from "./store";
 
-test('renders the App component', () => {
-  const { getByText, getByLabelText } = render(
-    <BrowserRouter>
-      <Provider store={store}>
-        <Routes>
-          <Route path=":seatClass/" element={<App />} />
-          <Route path="*" element={<App />} />
-        </Routes>
-      </Provider>
-    </BrowserRouter>
-  );
+jest.mock("./utils/createSeatId", () => ({
+	retrieveOrGenerateSeatId: jest.fn(),
+}));
 
-  expect(getByText('American Airlines')).toBeInTheDocument();
-  expect(getByLabelText('My Flight')).toBeInTheDocument();
+describe("App Component", () => {
+	it("renders App component", () => {
+		const { getByText, getByLabelText } = render(
+			<BrowserRouter>
+				<Provider store={store}>
+					<Routes>
+						<Route path=":seatClass/" element={<App />} />
+						<Route path="*" element={<App />} />
+					</Routes>
+				</Provider>
+			</BrowserRouter>
+		);
+
+		expect(getByText('American Airlines')).toBeInTheDocument();
+    expect(getByLabelText('My Flight')).toBeInTheDocument();
+	});
 });
