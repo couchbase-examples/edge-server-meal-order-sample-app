@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppDispatch } from '../store';
 import { updatePartialInventory } from '../store/inventorySlice';
@@ -24,6 +23,7 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
   const changeBuffer = useRef<string>('');
 
   // Process changes from the document
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const processDocumentChanges = useCallback((doc: any) => {
     if (!doc) return;
     
@@ -32,7 +32,7 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
     // Process all categories
     MEAL_CATEGORIES.forEach(category => {
       if (doc[category] && Array.isArray(doc[category])) {
-        doc[category].forEach((item: any) => {
+        doc[category].forEach((item) => {
           const mealId = Object.keys(item)[0];
           if (mealId) {
             const mealData = item[mealId];
@@ -123,8 +123,8 @@ const useInventoryChanges = (isEconomy: boolean): UseInventoryChangesReturn => {
           }
         }
 
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
+      } catch (error: unknown) {
+        if ((error as Error).name === 'AbortError') {
           return;
         }
         

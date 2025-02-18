@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { Typography } from "@mui/material";
@@ -16,6 +15,7 @@ import { fetchBusinessInventory } from "../store/inventorySlice";
 import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
+import { MealItem } from "../types";
 
 const MealPage = () => {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -115,9 +115,10 @@ const MealPage = () => {
   }, []);
 
   // Calculate availability for a meal item
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const calculateAvailability = useCallback((categoryName: string, mealId: string, inventory: any) => {
     const matchedInventory = inventory[categoryName]?.find(
-      (invObj: any) => Object.keys(invObj)[0] === mealId
+      (invObj: object) => Object.keys(invObj)[0] === mealId
     )?.[mealId];
 
     if (!matchedInventory) return { totalAvailable: 0, isOutOfStock: true };
@@ -156,7 +157,7 @@ const MealPage = () => {
   const inventory = inventoryState.data;
 
   // A helper to render each category
-  const renderMealCategory = (categoryName: string, items: any[]) => {
+  const renderMealCategory = (categoryName: string, items: MealItem[]) => {
     return (
       <div className="w-full max-w-[2000px] mx-auto mb-4">
         <div
