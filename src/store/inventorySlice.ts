@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { BusinessInventoryDoc, InventoryItem } from "../types";
 import { api } from "../services/api";
@@ -239,17 +238,17 @@ export const updateBusinessInventory = createAsyncThunk(
 
 					// If PUT succeeds, fetch again and return the new doc
 					return getCurrentInventory();
-				} catch (error: any) {
-					const parsed = JSON.parse(error.message);
-					const newstatus = parsed.status;
-					if (newstatus === 409) {
-						continue;
+				} catch (error: unknown) {
+					if (error instanceof Error) {
+						const parsed = JSON.parse(error.message);
+						const newstatus = parsed.status;
+						if (newstatus === 409) {
+							continue;
+						} else {
+							return rejectWithValue(error.message);
+						}
 					} else {
-						return rejectWithValue(
-							error instanceof Error
-								? error.message
-								: "Failed to update inventory"
-						);
+						return rejectWithValue("Failed to update inventory");
 					}
 				}
 			}
