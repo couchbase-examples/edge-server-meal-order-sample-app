@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState } from "../store";
 import { removeEconomyMeal } from "../store/economyMealSlice";
-import { removeMeal } from "../store/mealSlice";
+import { removeBusinessMeal } from "../store/businessMealSlice";
 import { toSentenceCase } from "../utils/formatText";
 import OrderSummaryDialog from "./OrderSummaryDialog";
 
@@ -69,7 +69,7 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
                     style={{
                       color: theme.palette.primary.main,
                     }}
-                    onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeMeal(item.name))}
+                    onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeBusinessMeal(item.name))}
                   >
                     Remove
                   </button>

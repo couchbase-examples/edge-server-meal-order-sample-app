@@ -5,10 +5,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState } from "../store";
 import { removeEconomyMeal, resetEconomyOrder, setEconomyItems } from "../store/economyMealSlice";
-import { CartMeal, removeMeal, resetOrder, setItems } from "../store/mealSlice";
+import { removeBusinessMeal, resetBusinessOrder, setBusinessItems } from "../store/businessMealSlice";
 import { toSentenceCase } from "../utils/formatText";
 import ConfirmedOrder from "./ConfirmedOrder";
 import OrderSummaryDialog from "./OrderSummaryDialog";
+import { CartMeal } from "../types";
 
 interface CartProps {
   isMobile?: boolean;
@@ -45,7 +46,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
       if (isEconomy) {
         dispatch(setEconomyItems(parsedItems));
       } else {
-        dispatch(setItems(parsedItems));
+        dispatch(setBusinessItems(parsedItems));
       }
     }
   }, [dispatch, isEconomy, seatClass]);
@@ -93,7 +94,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
     if (isEconomy) {
       dispatch(setEconomyItems(tempItems));
     } else {
-      dispatch(setItems(tempItems));
+      dispatch(setBusinessItems(tempItems));
     }
     setIsEditing(false);
     localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'false');
@@ -190,7 +191,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                           style={{
                             color: theme.palette.primary.main,
                           }}
-                          onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeMeal(item.name))}
+                          onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeBusinessMeal(item.name))}
                         >
                           Remove
                         </button>
@@ -205,7 +206,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                     {!isOrderConfirmed && !isEditing && (
                       <button 
                         className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                        onClick={() => dispatch(isEconomy ? resetEconomyOrder() : resetOrder())}
+                        onClick={() => dispatch(isEconomy ? resetEconomyOrder() : resetBusinessOrder())}
                       >
                         Reset
                       </button>

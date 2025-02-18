@@ -2,8 +2,8 @@ import { configureStore, Middleware } from "@reduxjs/toolkit";
 import timestampData from "../../public/timestamp.json";
 
 // Business slices
-import mealReducer from "./mealSlice";
-import inventoryReducer from "./inventorySlice";
+import mealReducer from "./businessMealSlice";
+import inventoryReducer from "./businessInventorySlice";
 
 // Economy slices
 import economyMealReducer from "./economyMealSlice";

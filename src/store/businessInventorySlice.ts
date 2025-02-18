@@ -1,22 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { BusinessInventoryDoc, InventoryItem } from "../types";
+import { InventoryDoc, InventoryItem, InventoryState, OutOfStockItem, UpdateOrderPayload } from "../types";
 import { api } from "../services/api";
 import { store } from ".";
-import { removeMeal } from "./mealSlice";
+import { removeBusinessMeal } from "./businessMealSlice";
 import { MEAL_CATEGORIES, isValidCategory } from "../constants";
-
-interface OutOfStockItem {
-	id: string;
-	name: string;
-	category: string;
-}
-
-interface InventoryState {
-	data: BusinessInventoryDoc | null;
-	status: "idle" | "loading" | "succeeded" | "failed";
-	error: string | null;
-	outOfStockItems: OutOfStockItem[];
-}
 
 const initialState: InventoryState = {
 	data: null,
@@ -25,24 +12,15 @@ const initialState: InventoryState = {
 	outOfStockItems: [],
 };
 
-interface UpdateOrderPayload {
-	items: Array<{
-		id: string;
-		name: string;
-		category: string;
-	}>;
-	seatUserId: string;
-}
-
 // API helper functions
-const getCurrentInventory = async (): Promise<BusinessInventoryDoc> => {
+const getCurrentInventory = async (): Promise<InventoryDoc> => {
 	return api.fetch("/american234.AmericanAirlines.AA234/businessinventory");
 };
 
 const updateInventoryData = async (
-	inventory: BusinessInventoryDoc,
+	inventory: InventoryDoc,
 	revId: string
-): Promise<BusinessInventoryDoc> => {
+): Promise<InventoryDoc> => {
 	return api.fetch(
 		`/american234.AmericanAirlines.AA234/businessinventory?rev=${revId}`,
 		{
@@ -53,7 +31,7 @@ const updateInventoryData = async (
 };
 
 // Thunks
-export const fetchBusinessInventory = createAsyncThunk<BusinessInventoryDoc>(
+export const fetchBusinessInventory = createAsyncThunk<InventoryDoc>(
 	"inventory/fetchBusinessInventory",
 	getCurrentInventory
 );
@@ -108,7 +86,7 @@ export const updatePartialInventory = createAsyncThunk(
 									(item) => item.mealId === mealKey
 								);
 								if (itemInCart && !update.seatsOrdered[seatId]) {
-									dispatch(removeMeal(itemInCart.name));
+									dispatch(removeBusinessMeal(itemInCart.name));
 								}
 							}
 
@@ -134,10 +112,10 @@ export const updateBusinessInventory = createAsyncThunk(
 	async (payload: UpdateOrderPayload, { rejectWithValue }) => {
 		// Helper function to do the "remove old orders + add new orders"
 		const applyOrdersToInventory = (
-			doc: BusinessInventoryDoc,
+			doc: InventoryDoc,
 			seatUserId: string,
 			items: Array<{ id: string; category: string }>
-		): BusinessInventoryDoc => {
+		): InventoryDoc => {
 			const updatedDoc = { ...doc };
 
 			// Remove all existing orders for this user
@@ -185,7 +163,7 @@ export const updateBusinessInventory = createAsyncThunk(
 		// Helper function to see if any payload item is truly out of stock
 		// based on the latest doc from the server.
 		const findOutOfStockItems = (
-			doc: BusinessInventoryDoc,
+			doc: InventoryDoc,
 			items: Array<{ id: string; name: string; category: string }>
 		): OutOfStockItem[] => {
 			const outOfStockItems: OutOfStockItem[] = [];

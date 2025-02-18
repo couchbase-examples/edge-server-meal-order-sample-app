@@ -16,7 +16,7 @@ import { updateEconomyInventory, clearOutOfStockItems as clearOutOfStockItemsEco
 import {
 	updateBusinessInventory,
 	clearOutOfStockItems,
-} from "../store/inventorySlice";
+} from "../store/businessInventorySlice";
 import { retrieveOrGenerateSeatId } from "../utils/createSeatId";
 import { toSentenceCase } from "../utils/formatText";
 

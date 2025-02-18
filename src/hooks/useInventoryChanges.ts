@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppDispatch } from '../store';
-import { updatePartialInventory } from '../store/inventorySlice';
+import { updatePartialInventory } from '../store/businessInventorySlice';
 import { updatePartialInventory as updatePartialEconomyInventory } from '../store/economyInventorySlice';
 import { MEAL_CATEGORIES } from '../constants';
 

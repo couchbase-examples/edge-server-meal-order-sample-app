@@ -1,21 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { BusinessMealDoc } from "../types";
-
-/** We only store meal name and category now. */
-export interface CartMeal {
-	name: string;
-	category: string;
-  mealId: string;
-}
-
-interface MealState {
-	// BusinessMeal data
-	data: BusinessMealDoc | null;
-	status: "idle" | "loading" | "succeeded" | "failed";
-	error: string | null;
-	// Cart items (one meal per category)
-	items: CartMeal[];
-}
+import { MealDoc, CartMeal, MealState } from "../types";
 
 const initialState: MealState = {
 	data: null,
@@ -24,7 +8,7 @@ const initialState: MealState = {
 	items: [],
 };
 
-export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
+export const fetchBusinessMeal = createAsyncThunk<MealDoc>(
 	"meal/fetchBusinessMeal",
 	async () => {
 		try {
@@ -44,7 +28,7 @@ export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
 				throw new Error(errorData || "Failed to fetch businessmeal data");
 			}
 
-			return (await response.json()) as BusinessMealDoc;
+			return (await response.json()) as MealDoc;
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch businessmeal data: ${error.message}`);
@@ -54,7 +38,7 @@ export const fetchBusinessMeal = createAsyncThunk<BusinessMealDoc>(
 	}
 );
 
-const mealSlice = createSlice({
+const businessMealSlice = createSlice({
 	name: "meal",
 	initialState,
 	reducers: {
@@ -109,5 +93,11 @@ const mealSlice = createSlice({
 	},
 });
 
-export const { addMeal, removeMeal, resetOrder, setItems } = mealSlice.actions;
-export default mealSlice.reducer;
+export const {
+	addMeal: addBusinessMeal,
+	removeMeal: removeBusinessMeal,
+	resetOrder: resetBusinessOrder,
+	setItems: setBusinessItems,
+} = businessMealSlice.actions;
+
+export default businessMealSlice.reducer;

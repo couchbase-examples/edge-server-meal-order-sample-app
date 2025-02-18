@@ -15,7 +15,7 @@ export interface MealItem {
   }
   
   // Shape of the "businessmeal" document
-  export interface BusinessMealDoc extends MealCategory {
+  export interface MealDoc extends MealCategory {
     _id: string;
     _rev: string;
     type: string;         // "businessmeal"
@@ -43,11 +43,46 @@ export interface MealItem {
   }
   
   // Shape of the "businessinventory" document
-  export interface BusinessInventoryDoc extends InventoryCategory {
+  export interface InventoryDoc extends InventoryCategory {
     _id: string;
     _rev: string;
     type: string;           // "businessinventory"
     flightno: string;
     leg: string;
     aircraft: string;
+  }
+
+  export interface CartMeal {
+    name: string;
+    category: string;
+    mealId: string;
+  }
+
+  export interface MealState {
+    data: MealDoc | null;
+    status: "idle" | "loading" | "succeeded" | "failed";
+    error: string | null;
+    items: CartMeal[];
+  }
+  
+  export interface OutOfStockItem {
+    id: string;
+    name: string;
+    category: string;
+  }
+
+  export interface InventoryState {
+    data: InventoryDoc | null;
+    status: "idle" | "loading" | "succeeded" | "failed";
+    error: string | null;
+    outOfStockItems: OutOfStockItem[]; // NEW
+  }
+
+  export interface UpdateOrderPayload {
+    items: Array<{
+      id: string;
+      name: string;
+      category: string;
+    }>;
+    seatUserId: string;
   }

@@ -11,8 +11,8 @@ import {
   removeEconomyMeal,
 } from "../store/economyMealSlice";
 import useInventoryChanges from "../hooks/useInventoryChanges";
-import { fetchBusinessInventory } from "../store/inventorySlice";
-import { addMeal, fetchBusinessMeal, removeMeal } from "../store/mealSlice";
+import { fetchBusinessInventory } from "../store/businessInventorySlice";
+import { addBusinessMeal, fetchBusinessMeal, removeBusinessMeal } from "../store/businessMealSlice";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
 import { MealItem } from "../types";
@@ -95,14 +95,14 @@ const MealPage = () => {
     }
     if (isSelected) {
       if (isEconomy) dispatch(removeEconomyMeal(mealName));
-      else dispatch(removeMeal(mealName));
+      else dispatch(removeBusinessMeal(mealName));
     } else {
       if (isEconomy)
         dispatch(
           addEconomyMeal({ name: mealName, category: categoryName, mealId })
         );
       else
-        dispatch(addMeal({ name: mealName, category: categoryName, mealId }));
+        dispatch(addBusinessMeal({ name: mealName, category: categoryName, mealId }));
     }
   }, [dispatch, isEconomy, isOrderConfirmed, isEditing]);
 
