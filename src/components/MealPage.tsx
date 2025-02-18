@@ -108,9 +108,9 @@ function MealPage() {
 
   const getImagePath = useCallback((assetId: string) => {
     try {
-      return new URL(`../assets/images/${assetId}.png`, import.meta.url).href;
+      return `/public/assets/images/${assetId}.png`;
     } catch {
-      return new URL(`../assets/images/default.png`, import.meta.url).href;
+      return `/public/assets/images/default.png`;
     }
   }, []);
 
