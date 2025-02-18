@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { MealDoc, CartMeal, MealState } from "../types";
+import { api } from "../services/api";
 
 const initialState: MealState = {
 	data: null,
@@ -12,23 +13,14 @@ export const fetchBusinessMeal = createAsyncThunk<MealDoc>(
 	"meal/fetchBusinessMeal",
 	async () => {
 		try {
-			const response = await fetch(
-				"/american234.AmericanAirlines.AA234/businessmeal",
-				{
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-				}
-			);
+			const response = await api.fetch("/american234.AmericanAirlines.AA234/businessmeal");
 
-			if (!response.ok) {
+			if (!response) {
 				const errorData = await response.text();
 				throw new Error(errorData || "Failed to fetch businessmeal data");
 			}
 
-			return (await response.json()) as MealDoc;
+			return response as MealDoc;
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch businessmeal data: ${error.message}`);
