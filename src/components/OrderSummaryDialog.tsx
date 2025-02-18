@@ -1,3 +1,15 @@
+import React, { useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { RootState, store } from "../store";
+
+import { updateEconomyInventory, clearOutOfStockItems as clearOutOfStockItemsEconomy } from "../store/economyInventorySlice";
+import {
+	updateBusinessInventory,
+	clearOutOfStockItems,
+} from "../store/businessInventorySlice";
+
 import {
 	Alert,
 	Button,
@@ -7,16 +19,6 @@ import {
 	DialogContent,
 	DialogTitle,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
-import { RootState, store } from "../store";
-import { updateEconomyInventory, clearOutOfStockItems as clearOutOfStockItemsEconomy } from "../store/economyInventorySlice";
-import {
-	updateBusinessInventory,
-	clearOutOfStockItems,
-} from "../store/businessInventorySlice";
 import { retrieveOrGenerateSeatId } from "../utils/createSeatId";
 import { toSentenceCase } from "../utils/formatText";
 
@@ -36,12 +38,15 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const isEconomy = seatClass === "economy";
 
 	// Choose the correct slice based on isEconomy
-	const { items } = useSelector((state: RootState) =>
+	const selectedMealState = useSelector((state: RootState) =>
 		isEconomy ? state.economyMeal : state.businessMeal
 	);
-	const { status, error, outOfStockItems } = useSelector(
-		(state: RootState) => isEconomy ? state.economyInventory: state.businessInventory
+	const selectedInventoryState = useSelector((state: RootState) =>
+		isEconomy ? state.economyInventory : state.businessInventory
 	);
+
+	const { items } = selectedMealState;
+	const { status, error, outOfStockItems } = selectedInventoryState;
 
 	// Decide which action to dispatch
 	const updateInventoryAction = isEconomy
@@ -51,6 +56,8 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const seatUserId = retrieveOrGenerateSeatId();
 
 	const [open, setOpen] = useState(false);
+
+	const loadingIndicator = <CircularProgress size={24} />;
 
 	const handleOpen = () => {
 		setOpen(true);
@@ -97,7 +104,11 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 	const handleClose = () => {
 		setOpen(false);
 		// Optionally clear out-of-stock items on normal close too
-		dispatch(clearOutOfStockItems());
+		if (isEconomy) {
+			dispatch(clearOutOfStockItemsEconomy());
+		} else {
+			dispatch(clearOutOfStockItems());
+		}
 	};
 
 	if (items.length === 0 && outOfStockItems.length === 0 && !isEditing) {
@@ -135,8 +146,8 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 						<Alert severity="warning">
 							<strong>Sorry! the following items are no longer available. You may make an alternative selection and then confirm your order:</strong>
 							<ul style={{ marginTop: "8px" }}>
-								{outOfStockItems.map(({ name, category }, i) => (
-									<li key={i}>
+								{outOfStockItems.map(({ name, category }) => (
+									<li key={name}>
 										<strong>{name}</strong> ({toSentenceCase(category)})
 									</li>
 								))}
@@ -187,7 +198,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 						color="primary"
 						disabled={status === "loading"}
 					>
-						{status === "loading" ? <CircularProgress size={24} /> : "Confirm"}
+						{status === "loading" ? loadingIndicator : "Confirm"}
 					</Button>}
 				</DialogActions>
 			</Dialog>

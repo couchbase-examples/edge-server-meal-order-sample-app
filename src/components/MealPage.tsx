@@ -1,8 +1,9 @@
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import { Typography } from "@mui/material";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { Typography } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+
 import { useAppDispatch, useAppSelector } from "../store";
 import { fetchEconomyInventory } from "../store/economyInventorySlice";
 import {
@@ -10,9 +11,9 @@ import {
   fetchEconomyMeal,
   removeEconomyMeal,
 } from "../store/economyMealSlice";
-import useInventoryChanges from "../hooks/useInventoryChanges";
 import { fetchBusinessInventory } from "../store/businessInventorySlice";
 import { addBusinessMeal, fetchBusinessMeal, removeBusinessMeal } from "../store/businessMealSlice";
+import useInventoryChanges from "../hooks/useInventoryChanges";
 import MealCard from "./MealCard";
 import { toSentenceCase } from "../utils/formatText";
 import { MealItem } from "../types";
@@ -48,7 +49,7 @@ const MealPage = () => {
       ...prev,
       [category]: !prev[category],
     }));
-  }, []);
+  }, [setExpandedCategories]);
 
   useEffect(() => {
     const handleOrderStateChange = (
@@ -199,7 +200,7 @@ const MealPage = () => {
 
             return (
               <MealCard
-                key={`${item.mealid}-${isOutOfStock ? 'out' : 'in'}`}
+                key={`${categoryName}-${item.mealid}-${isOutOfStock ? 'out' : 'in'}`}
                 meal={item}
                 isSelected={isSelected}
                 isOutOfStock={isOutOfStock}

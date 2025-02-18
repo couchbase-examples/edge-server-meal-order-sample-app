@@ -1,8 +1,9 @@
-import EditIcon from "@mui/icons-material/Edit";
-import { Button, useTheme } from "@mui/material";
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
+import { Button, useTheme } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+
 import { RootState } from "../store";
 import { removeEconomyMeal } from "../store/economyMealSlice";
 import { removeBusinessMeal } from "../store/businessMealSlice";
@@ -29,8 +30,8 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
   const { seatClass } = useParams();
   const isEconomy = seatClass === "economy";
 
-  const { items } = useSelector((state: RootState) =>
-    isEconomy ? state.economyMeal : state.businessMeal
+  const items = useSelector((state: RootState) =>
+    isEconomy ? state.economyMeal.items : state.businessMeal.items
   );
 
   return (
@@ -54,9 +55,9 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
           <p className="text-gray-500">No items in your order</p>
         ) : (
           <ul className="space-y-3">
-            {items.map((item, index) => (
+            {items.map((item) => (
               <li
-                key={index}
+                key={item.mealId}
                 className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
               >
                 <div>
@@ -82,12 +83,12 @@ const ConfirmedOrder: React.FC<ConfirmedOrderProps> = ({
       {isEditing && (
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 mt-4">
           <div className="flex gap-2">
-            {<button
+            <button
               className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
               onClick={onEditComplete}
             >
               Cancel
-            </button>}
+            </button>
             <div className="flex-1">
               <OrderSummaryDialog onOrderSuccess={onOrderSuccess} isEditing={true}/>
             </div>

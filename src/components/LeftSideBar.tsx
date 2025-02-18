@@ -48,7 +48,7 @@ const LeftSideBar: React.FC<LeftSideBarProps> = ({ isSidebarOpen }) => {
 			<SidebarContent isSidebarOpen={isSidebarOpen} theme={theme} />
 		</Drawer>
 	);
-}
+};
 
 function SidebarContent({
 	isSidebarOpen,
@@ -172,4 +172,3 @@ function SidebarContent({
 }
 
 export default LeftSideBar;
-
