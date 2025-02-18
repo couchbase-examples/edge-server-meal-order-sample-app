@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "set-timestamp": "node src/scripts/setTimestamp.mjs",
+    "set-timestamp": "node scripts/setTimestamp.mjs",
     "dev": "npm run set-timestamp && vite",
     "test": "jest",
     "build": "tsc -b && vite build",
