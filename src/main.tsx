@@ -8,6 +8,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import timestampData from "../public/timestamp.json";
 
 // Function to perform the conditional cleanup
+// We are cleaning the localstorage when we re-run the react app
+// This is to ensure that the localstorage is in sync with the timestamp
 const performConditionalCleanup = () => {
 	const timestamp: { timestamp: string } = timestampData;
 	const appTimestamp = timestamp.timestamp;// Get the timestamp from the JSON file
