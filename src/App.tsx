@@ -50,7 +50,7 @@ const App = () => {
 						style={{ marginLeft: `${isSidebarOpen ? 240 : 64}px` }}
 					>
 						<main className="flex-1">
-							<div className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
+							<div data-testid="meal-page" className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
 								<MealPage />
 							</div>
 						</main>
