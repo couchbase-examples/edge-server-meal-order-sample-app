@@ -1,0 +1,54 @@
+{
+    "interface": "0.0.0.0:60000",
+    "https": {
+        "tls_cert_path": "./certfile.pem", // setup with self signed certificate with CN=localhost
+        "tls_key_path": "./keyfile"
+    }, // optional
+    "users": "./usersfile", // Includes list of clients that can access and interact with the Edge Server
+    "logging": {
+        "domains": {
+            "REST": "verbose",
+            "Listener": "verbose",
+            "DB": "verbose",
+            "Query": "verbose"
+        },
+        "file": {
+            "dir": "./",
+            "format": "text",
+            "maxSize": 2048, // in bytes
+            "rotateCount": 1
+        },
+        "audit": {
+            "file": "./audit.log",
+            "enable": "*"
+        }
+    },
+    "databases": {
+        "american234": {
+            "path": "./american234.cblite2", // second database
+            "enable_client_writes": true,
+            "create": true, // database that is created if it does not exist
+            "collections": { // the database is created with inventory scope and 5 collections
+                "AmericanAirlines.AA234": {}
+            },
+            "enable_adhoc_queries": true, // un-named queries allowed
+            "enable_client_sync": true // client sync allowed from downstream clients
+        }
+    },
+    "replications": [
+        {
+            // setup a bidirectional continous replication
+            "source": "wss://reaeawukmad1thac.apps.cloud.couchbase.com:4984/american234",
+            "target": "american234",
+            "bidirectional": true,
+            "continuous": true,
+            "collections": {
+                "AmericanAirlines.AA234": {}
+            },
+            "auth": {
+                "user": "edgeserver234", // user setup on remote app services/Sync Gateway
+                "password": "Couchbase123!" // user setup on remote app services/Sync Gateway
+            }
+        }
+    ]
+}
