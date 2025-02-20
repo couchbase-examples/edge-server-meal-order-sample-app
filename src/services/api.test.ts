@@ -36,7 +36,7 @@ describe('Business Inventory API', () => {
       jest.spyOn(api, 'fetch').mockResolvedValueOnce(mockInventoryData);
 
       const response = await api.fetch('/american234.AmericanAirlines.AA234/businessinventory');
-      expect(response).toEqual('');
+      expect(response).toEqual(mockInventoryData);
       expect(api.fetch).toHaveBeenCalledWith('/american234.AmericanAirlines.AA234/businessinventory');
     });
 
