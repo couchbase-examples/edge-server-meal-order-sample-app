@@ -5,7 +5,7 @@ import { store } from "./store/index";
 import App from "./App";
 import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import timestampData from "../public/timestamp.json";
+import timestampData from "../timestamp.json";
 
 // Function to perform the conditional cleanup
 // We are cleaning the localstorage when we re-run the react app

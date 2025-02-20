@@ -109,9 +109,9 @@ const MealPage = () => {
 
   const getImagePath = useCallback((assetId: string) => {
     try {
-      return `/public/assets/images/${assetId}.png`;
+      return `/assets/images/${assetId}.png`;
     } catch {
-      return `/public/assets/images/default.png`;
+      return `/assets/images/default.png`;
     }
   }, []);
 
