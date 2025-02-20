@@ -1,7 +1,3 @@
-const BASE_URL = import.meta.env.DEV
-  ? '' 
-  : import.meta.env.EDGE_SERVER_BASE_URL;
-
 export const api = {
   fetch: async (endpoint: string, options: RequestInit = {}) => {
     const defaultHeaders = {
@@ -9,7 +5,7 @@ export const api = {
       'Authorization': 'Basic ' + btoa('seatuser:password'),
     };
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(`${endpoint}`, {
       ...options,
       headers: {
         ...defaultHeaders,

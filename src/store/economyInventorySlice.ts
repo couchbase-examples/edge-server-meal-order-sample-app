@@ -1,46 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { BusinessInventoryDoc, InventoryItem } from "../types";
+import { InventoryDoc, InventoryItem, InventoryState, OutOfStockItem, UpdateOrderPayload } from "../types";
 import { api } from '../services/api';
 import { store } from ".";
 import { removeEconomyMeal } from "./economyMealSlice";
 import { MEAL_CATEGORIES, isValidCategory } from "../constants";
 
-interface OutOfStockItem {
-  id: string;
-  name: string;
-  category: string;
-}
-
-interface EconomyInventoryState {
-  data: BusinessInventoryDoc | null;
-  status: "idle" | "loading" | "succeeded" | "failed";
-  error: string | null;
-  outOfStockItems: OutOfStockItem[]; // NEW
-}
-
-const initialState: EconomyInventoryState = {
+const initialState: InventoryState = {
   data: null,
   status: "idle",
   error: null,
-  outOfStockItems: [], // NEW
+  outOfStockItems: [],
 }
-
-interface UpdateOrderPayload {
-  items: Array<{
-    id: string;
-    category: string;
-    name: string;
-  }>;
-  seatUserId: string;
-}
-
 // API helper functions
-const getCurrentInventory = async (): Promise<BusinessInventoryDoc> => {
+const getCurrentInventory = async (): Promise<InventoryDoc> => {
   return api.fetch("/american234.AmericanAirlines.AA234/economyinventory");
 };
 
-const updateInventoryData = async (inventory: BusinessInventoryDoc, revId: string): Promise<BusinessInventoryDoc> => {
+const updateInventoryData = async (inventory: InventoryDoc, revId: string): Promise<InventoryDoc> => {
   return api.fetch(`/american234.AmericanAirlines.AA234/economyinventory?rev=${revId}`, {
     method: "PUT",
     body: JSON.stringify(inventory),
@@ -48,7 +24,7 @@ const updateInventoryData = async (inventory: BusinessInventoryDoc, revId: strin
 };
 
 // Thunks
-export const fetchEconomyInventory = createAsyncThunk<BusinessInventoryDoc>(
+export const fetchEconomyInventory = createAsyncThunk<InventoryDoc>(
   "economyInventory/fetchEconomyInventory",
   getCurrentInventory
 );
@@ -70,7 +46,7 @@ export const updatePartialInventory = createAsyncThunk(
     if (!currentInventory) return null;
 
     const updatedInventory = { ...currentInventory };
-    const seatId = localStorage.getItem("seatId") || "";
+    const seatId = localStorage.getItem("cbmd:seatId") || "";
     
     // Track categories that have changes
     const changedCategories = new Set<string>();
@@ -124,10 +100,10 @@ export const updateEconomyInventory = createAsyncThunk(
   async (payload: UpdateOrderPayload, { rejectWithValue }) => {
     // 1) Helper to remove old orders + add new ones for current user
     const applyOrdersToInventory = (
-      doc: BusinessInventoryDoc,
+      doc: InventoryDoc,
       seatUserId: string,
       items: Array<{ id: string; category: string }>
-    ): BusinessInventoryDoc => {
+    ): InventoryDoc => {
       const updatedDoc = { ...doc };
 
       // Remove existing orders for this user from ALL categories
@@ -174,7 +150,7 @@ export const updateEconomyInventory = createAsyncThunk(
 
     // 2) Helper to detect out-of-stock items
     const findOutOfStockItems = (
-      doc: BusinessInventoryDoc,
+      doc: InventoryDoc,
       items: Array<{ id: string; name: string; category: string }>
     ): OutOfStockItem[] => {
       const outOfStockItems: OutOfStockItem[] = [];
@@ -227,15 +203,17 @@ export const updateEconomyInventory = createAsyncThunk(
 
           // e) if successful, re-fetch and return
           return getCurrentInventory();
-        } catch (error: any) {
+        } catch (error: unknown) {
           // If conflict, loop again
-          const parsed = JSON.parse(error.message);
-          if (parsed.status === 409) {
-            continue;
+          if (error instanceof Error) {
+            const parsed = JSON.parse(error.message);
+            if (parsed.status === 409) {
+              continue;
+            } else {
+              return rejectWithValue(error.message);
+            }
           } else {
-            return rejectWithValue(
-              error instanceof Error ? error.message : "Failed to update economy inventory"
-            );
+            return rejectWithValue("Failed to update economy inventory");
           }
         }
       }

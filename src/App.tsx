@@ -1,4 +1,3 @@
-/* src/App.tsx */
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -7,6 +6,7 @@ import {
 	CssBaseline,
 } from "@mui/material";
 import Navbar from "./components/Navbar";
+
 import LeftSideBar from "./components/LeftSideBar";
 import Cart from "./components/Cart";
 import { businessTheme, economyTheme } from "./themes";
@@ -14,7 +14,7 @@ import { retrieveOrGenerateSeatId } from "./utils/createSeatId";
 import "./index.css";
 import MealPage from "./components/MealPage";
 
-export default function App() {
+const App = () => {
 	// Read the seatClass from the URL (possible "business" or "economy")
 	const { seatClass } = useParams();
 
@@ -30,30 +30,27 @@ export default function App() {
 		setIsSidebarOpen(isDesktop);
 	}, [isDesktop]);
 
-	const handleSidebarToggle = () => {
+	const toggleSidebar = () => {
 		setIsSidebarOpen((prev) => !prev);
 	};
-
-	const sidebarWidth = isSidebarOpen ? 240 : 64;
 
 	return (
 		<ThemeProvider theme={selectedTheme}>
 			<CssBaseline />
 			<div className="flex flex-col h-screen">
-				<Navbar onMenuClick={handleSidebarToggle} />
+				<Navbar onMenuClick={toggleSidebar} />
 
-				{/* Main container (under the 45px navbar) */}
+				{/* Main container */}
 				<div className="flex flex-1 h-[calc(100vh-45px)] relative">
-					{/* Left SideBar (always "permanent" so it does NOT overlay) */}
+					{/* Left SideBar */}
 					<LeftSideBar isSidebarOpen={isSidebarOpen} />
 
-					{/* Main content area: shift right so it's never hidden */}
+					{/* Main content area */}
 					<div
 						className="flex flex-col flex-1 overflow-y-auto bg-gray-50 transition-all duration-300 ease-in-out"
-						style={{ marginLeft: `${sidebarWidth}px` }}
+						style={{ marginLeft: `${isSidebarOpen ? 240 : 64}px` }}
 					>
 						<main className="flex-1">
-							<div className="p-2 sm:p-4 mt-8 pb-[72px] md:pb-4">
 								<MealPage />
 							</div>
 						</main>
@@ -70,4 +67,6 @@ export default function App() {
 			</div>
 		</ThemeProvider>
 	);
-}
+};
+
+export default App;

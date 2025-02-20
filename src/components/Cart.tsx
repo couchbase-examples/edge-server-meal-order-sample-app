@@ -1,14 +1,15 @@
 import { Alert, Snackbar } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { RootState } from "../store";
 import { removeEconomyMeal, resetEconomyOrder, setEconomyItems } from "../store/economyMealSlice";
-import { CartMeal, removeMeal, resetOrder, setItems } from "../store/mealSlice";
+import { removeBusinessMeal, resetBusinessOrder, setBusinessItems } from "../store/businessMealSlice";
 import { toSentenceCase } from "../utils/formatText";
 import ConfirmedOrder from "./ConfirmedOrder";
 import OrderSummaryDialog from "./OrderSummaryDialog";
+import { CartMeal } from "../types";
 
 interface CartProps {
   isMobile?: boolean;
@@ -19,33 +20,33 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   const theme = useTheme();
   const { seatClass } = useParams();
   const isEconomy = seatClass === "economy";
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isCartExpanded, setIsCartExpanded] = useState(false);
 
   // Initialize states from localStorage
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(() => {
-    const saved = localStorage.getItem(`isOrderConfirmed-${seatClass}`);
+    const saved = localStorage.getItem(`cbmd:isOrderConfirmed-${seatClass}`);
     return saved ? JSON.parse(saved) : false;
   });
   const [isEditing, setIsEditing] = useState(() => {
-    const wasEditing = localStorage.getItem(`isEditing-${seatClass}`);
+    const wasEditing = localStorage.getItem(`cbmd:isEditing-${seatClass}`);
     return wasEditing === 'true';
   });
   const [tempItems, setTempItems] = useState<CartMeal[]>(() => {
-    const saved = localStorage.getItem(`tempItems-${seatClass}`);
+    const saved = localStorage.getItem(`cbmd:tempItems-${seatClass}`);
     return saved ? JSON.parse(saved) : [];
   });
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [key, setKey] = useState(0);
+  const [orderKey, setOrderKey] = useState(0);
 
   // On mount/refresh, load confirmed items
   useEffect(() => {
-    const confirmedItems = localStorage.getItem(`cartItems-${seatClass}`);
+    const confirmedItems = localStorage.getItem(`cbmd:cartItems-${seatClass}`);
     if (confirmedItems) {
       const parsedItems = JSON.parse(confirmedItems);
       if (isEconomy) {
         dispatch(setEconomyItems(parsedItems));
       } else {
-        dispatch(setItems(parsedItems));
+        dispatch(setBusinessItems(parsedItems));
       }
     }
   }, [dispatch, isEconomy, seatClass]);
@@ -53,7 +54,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   // Update localStorage when order confirmation status changes
   useEffect(() => {
     if (!isEditing) {
-      localStorage.setItem(`isOrderConfirmed-${seatClass}`, JSON.stringify(isOrderConfirmed));
+      localStorage.setItem(`cbmd:isOrderConfirmed-${seatClass}`, JSON.stringify(isOrderConfirmed));
     }
   }, [isOrderConfirmed, isEditing, seatClass]);
 
@@ -75,29 +76,29 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
   // Save items to localStorage only when explicitly confirmed
   useEffect(() => {
     if (!isEditing && isOrderConfirmed) {
-      localStorage.setItem(`cartItems-${seatClass}`, JSON.stringify(items));
+      localStorage.setItem(`cbmd:cartItems-${seatClass}`, JSON.stringify(items));
     }
   }, [isEditing, isOrderConfirmed, items, seatClass]);
 
   // Save the current items when starting edit mode
-  const handleEditStart = () => {
+  const startEditing = () => {
     const currentItems = [...items];
     setTempItems(currentItems);
     setIsEditing(true);
-    localStorage.setItem(`isEditing-${seatClass}`, 'true');
-    localStorage.setItem(`tempItems-${seatClass}`, JSON.stringify(currentItems));
+    localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'true');
+    localStorage.setItem(`cbmd:tempItems-${seatClass}`, JSON.stringify(currentItems));
   };
 
   // Restore the original items when cancelling edit mode
-  const handleEditComplete = () => {
+  const cancelEdit = () => {
     if (isEconomy) {
       dispatch(setEconomyItems(tempItems));
     } else {
-      dispatch(setItems(tempItems));
+      dispatch(setBusinessItems(tempItems));
     }
     setIsEditing(false);
-    localStorage.setItem(`isEditing-${seatClass}`, 'false');
-    localStorage.removeItem(`tempItems-${seatClass}`);
+    localStorage.setItem(`cbmd:isEditing-${seatClass}`, 'false');
+    localStorage.removeItem(`cbmd:tempItems-${seatClass}`);
   };
 
   // Handle successful order confirmation
@@ -117,10 +118,10 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
     }
     setTempItems([]);
     setSnackbarOpen(true);
-    setKey(prev => prev + 1);
+    setOrderKey(prev => prev + 1);
   };
-
-  const handleSnackbarClose = () => {
+  
+  const closeSnackbar = () => {
     setSnackbarOpen(false);
   };
 
@@ -129,9 +130,9 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
       {isOrderConfirmed ? (
         <div className={`${isMobile ? 'bg-white shadow-lg' : 'h-full mt-12'}`}>
           <ConfirmedOrder 
-            key={key} 
-            onEditOrder={handleEditStart}
-            onEditComplete={handleEditComplete}
+            key={orderKey} 
+            onEditOrder={startEditing}
+            onEditComplete={cancelEdit}
             onOrderSuccess={handleOrderConfirmation}
             isEditing={isEditing}
             isMobile={isMobile}
@@ -141,14 +142,14 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
         <div 
           className={`bg-white ${
             isMobile 
-              ? `${isExpanded ? 'h-[80vh]' : 'h-[72px]'} transition-all duration-300` 
+              ? `${isCartExpanded ? 'h-[80vh]' : 'h-[72px]'} transition-all duration-300` 
               : 'h-full flex flex-col p-4 mt-12'
           }`}
         >
           {isMobile && (
             <div 
               className="h-[72px] flex items-center justify-between px-4 cursor-pointer border-t border-gray-200 shadow-lg"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => setIsCartExpanded(!isCartExpanded)}
             >
               <div className="flex items-center">
                 <h2 className="text-xl font-semibold">Your Cart</h2>
@@ -161,14 +162,14 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                 style={{ backgroundColor: theme.palette.primary.main }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (items.length > 0) setIsExpanded(true);
+                  if (items.length > 0) setIsCartExpanded(true);
                 }}
               >
                 View Cart
               </button>
             </div>
           )}
-          {(!isMobile || isExpanded) && (
+          {(!isMobile || isCartExpanded) && (
             <>
               {!isMobile && <h2 className="text-xl font-semibold mb-4">Your Cart</h2>}
               <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-4' : ''}`}>
@@ -190,7 +191,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                           style={{
                             color: theme.palette.primary.main,
                           }}
-                          onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeMeal(item.name))}
+                          onClick={() => dispatch(isEconomy ? removeEconomyMeal(item.name) : removeBusinessMeal(item.name))}
                         >
                           Remove
                         </button>
@@ -205,13 +206,13 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                     {!isOrderConfirmed && !isEditing && (
                       <button 
                         className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                        onClick={() => dispatch(isEconomy ? resetEconomyOrder() : resetOrder())}
+                        onClick={() => dispatch(isEconomy ? resetEconomyOrder() : resetBusinessOrder())}
                       >
                         Reset
                       </button>
                     )}
                     <div className={!isOrderConfirmed && !isEditing ? "flex-1" : "w-full"}>
-                      <OrderSummaryDialog onOrderSuccess={handleOrderConfirmation} />
+                      <OrderSummaryDialog onOrderSuccess={handleOrderConfirmation} isEditing={false}/>
                     </div>
                   </div>
                 </div>
@@ -224,11 +225,11 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}
-        onClose={handleSnackbarClose}
+        onClose={closeSnackbar}
         anchorOrigin={{ vertical: isMobile ? "top" : "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={handleSnackbarClose}
+          onClose={closeSnackbar}
           severity="success"
           variant="filled"
           sx={{ width: "100%" }}

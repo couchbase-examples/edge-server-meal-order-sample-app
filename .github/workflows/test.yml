@@ -1,0 +1,48 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up test environment
+      run: |
+        # Create a Dockerfile for the test environment
+        cat << EOF > Dockerfile.test
+        FROM node:latest
+        WORKDIR /app
+        COPY . .
+        COPY test/raw/couchbase-edge-server /usr/local/bin/
+        COPY test/raw/config-tls-replication-sync.json /app/
+        COPY test/raw/resetdemo.sh /app/
+        RUN chmod +x /usr/local/bin/couchbase-edge-server
+        RUN chmod +x /app/resetdemo.sh
+        RUN npm install
+        EOF
+    
+    - name: Build and run test container
+      run: |
+        # Build the test container
+        docker build -t react-test-app -f Dockerfile.test .
+        
+        # Run the container with edge server setup
+        docker run -d --name test-container react-test-app /bin/bash -c \
+          "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
+           couchbase-edge-server --verbose config-tls-replication-sync.json & \
+           sleep 10 && \
+           npm test"
+        
+        # Follow logs and exit based on test results
+        docker logs -f test-container
+        exit $(docker inspect test-container --format='{{.State.ExitCode}}')

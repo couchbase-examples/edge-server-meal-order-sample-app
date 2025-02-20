@@ -1,6 +1,6 @@
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { Card, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import { Card, useTheme } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 interface MealCardProps {
 	meal: {

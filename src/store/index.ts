@@ -1,8 +1,9 @@
 import { configureStore, Middleware } from "@reduxjs/toolkit";
+import timestampData from "../../timestamp.json";
 
 // Business slices
-import mealReducer from "./mealSlice";
-import inventoryReducer from "./inventorySlice";
+import mealReducer from "./businessMealSlice";
+import inventoryReducer from "./businessInventorySlice";
 
 // Economy slices
 import economyMealReducer from "./economyMealSlice";
@@ -14,8 +15,8 @@ import type { TypedUseSelectorHook } from "react-redux";
 // Load persisted state from localStorage
 const loadState = () => {
   try {
-    const businessMealState = localStorage.getItem('businessMeal');
-    const economyMealState = localStorage.getItem('economyMeal');
+    const businessMealState = localStorage.getItem('cbmd:businessMeal');
+    const economyMealState = localStorage.getItem('cbmd:economyMeal');
     
     return {
       businessMeal: businessMealState ? JSON.parse(businessMealState) : undefined,
@@ -23,6 +24,19 @@ const loadState = () => {
     };
   } catch {
     return undefined;
+  }
+};
+
+// Clear persisted state from localStorage
+const clearPersistedState = () => {
+  
+  const timestamp: { timestamp: string } = timestampData;
+  const appTimestamp = timestamp.timestamp; // Get the timestamp from the JSON file
+	const storedTimestamp = localStorage.getItem("cbmd:storedTimestamp");
+
+  if (appTimestamp !== storedTimestamp) {
+    localStorage.removeItem('cbmd:businessMeal');
+    localStorage.removeItem('cbmd:economyMeal');
   }
 };
 
@@ -34,7 +48,7 @@ const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
   try {
     // Only persist the items array from each slice
     if (state.businessMeal?.items) {
-      localStorage.setItem('businessMeal', JSON.stringify({
+      localStorage.setItem('cbmd:businessMeal', JSON.stringify({
         ...state.businessMeal,
         data: null,  // Don't persist API data
         status: 'idle',
@@ -42,7 +56,7 @@ const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
       }));
     }
     if (state.economyMeal?.items) {
-      localStorage.setItem('economyMeal', JSON.stringify({
+      localStorage.setItem('cbmd:economyMeal', JSON.stringify({
         ...state.economyMeal,
         data: null,  // Don't persist API data
         status: 'idle',
@@ -55,6 +69,9 @@ const persistStateMiddleware: Middleware = (store) => (next) => (action) => {
   
   return result;
 };
+
+// Clear local storage keys related to the app's state when the application starts
+clearPersistedState();
 
 export const store = configureStore({
   preloadedState: loadState(),

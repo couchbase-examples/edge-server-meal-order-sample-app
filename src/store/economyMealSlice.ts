@@ -1,24 +1,8 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { BusinessMealDoc } from "../types";
+import { MealDoc, CartMeal, MealState } from "../types";
+import { api } from "../services/api";
 
-/** We'll use the same types if they only differ by name in the Couchbase doc.
-If you'd like a separate "EconomyMealDoc," you can define that too. **/
-export type EconomyMealDoc = BusinessMealDoc
-
-export interface CartMeal {
-	name: string;
-	category: string;
-	mealId: string;
-}
-
-interface EconomyMealState {
-	data: BusinessMealDoc | null;
-	status: "idle" | "loading" | "succeeded" | "failed";
-	error: string | null;
-	items: CartMeal[];
-}
-
-const initialState: EconomyMealState = {
+const initialState: MealState = {
 	data: null,
 	status: "idle",
 	error: null,
@@ -26,27 +10,18 @@ const initialState: EconomyMealState = {
 };
 
 // GET economy meal from different path
-export const fetchEconomyMeal = createAsyncThunk<EconomyMealDoc>(
+export const fetchEconomyMeal = createAsyncThunk<MealDoc>(
 	"economyMeal/fetchEconomyMeal",
 	async () => {
 		try {
-			const response = await fetch(
-				"/american234.AmericanAirlines.AA234/economymeal",
-				{
-					headers: {
-						Authorization: "Basic " + btoa("seatuser:password"),
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-				}
-			);
+			const response = await api.fetch("/american234.AmericanAirlines.AA234/economymeal ");
 
-			if (!response.ok) {
+			if (!response) {
 				const errorData = await response.text();
 				throw new Error(errorData || "Failed to fetch economyMeal data");
 			}
 
-			return (await response.json()) as EconomyMealDoc;
+			return response as MealDoc;
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch economyMeal data: ${error.message}`);
@@ -109,4 +84,5 @@ export const {
 	resetOrder: resetEconomyOrder,
 	setItems: setEconomyItems,
 } = economyMealSlice.actions;
+
 export default economyMealSlice.reducer;
