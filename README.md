@@ -27,7 +27,6 @@ Follow these steps to set up and run the application locally:
    ```bash
    EDGE_SERVER_BASE_URL="https://localhost:60000"
    ```
-   Change the value to match your desired backend URL. Note that **Vite only** exposes variables prefixed with **VITE_ to** client-side code.
 
 4. **Start the Development Server**:
    Launch the application in development mode using:
