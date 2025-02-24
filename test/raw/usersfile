@@ -1,0 +1,8 @@
+// Couchbase Edge Server users file
+
+{
+    "$schema": "https://packages.couchbase.com/couchbase-edge-server/users_schema.json"
+    ,
+    "seatuser": {"password":"$2a$12$ONMULXYRjjXLNgHRgfuHR.qa/32nWwRWZ5lLvfSt54NuLVBw3iTAO"},
+    "admin": {"password":"$2a$12$ONMULXYRjjXLNgHRgfuHR.qa/32nWwRWZ5lLvfSt54NuLVBw3iTAO","roles":["admin"]}
+}

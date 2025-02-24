@@ -38,7 +38,7 @@
     "replications": [
         {
             // setup a bidirectional continous replication
-            "source": "wss://reaeawukmad1thac.apps.cloud.couchbase.com:4984/american234",
+            "source": "wss://reaeawukmad1thac.apps.cloud.couchbase.com:5000/american234",
             "target": "american234",
             "bidirectional": true,
             "continuous": true,
