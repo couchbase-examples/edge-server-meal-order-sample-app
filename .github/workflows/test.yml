@@ -47,7 +47,6 @@ jobs:
           COPY test/raw/resetdemo.sh /app/
           RUN chmod +x /usr/local/bin/couchbase-edge-server
           RUN chmod +x /app/resetdemo.sh
-          RUN ./couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
           RUN npm install
           RUN npx cypress install
           EOF
@@ -61,7 +60,8 @@ jobs:
           docker run -d --name test-container \
             -p 5173:5173 \
             react-test-app /bin/bash -c \
-            "sh /app/resetdemo.sh & \
+            "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
+             sh resetdemo.sh & \
              npm run dev & \
              sleep 15 && \
              npx cypress run && \
