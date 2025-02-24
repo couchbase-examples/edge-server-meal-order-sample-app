@@ -179,6 +179,7 @@ const Cart: React.FC<CartProps> = ({ isMobile = false }) => {
                   <ul className="space-y-3">
                     {items.map((item, index) => (
                       <li
+                        id={`cart-item-${item.name.replace(/\s+/g, '-')}`}
                         key={index}
                         className="flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow-sm"
                       >

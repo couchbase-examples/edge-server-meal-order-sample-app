@@ -193,6 +193,7 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
 
 					{/* Confirm button */}
 					{!outOfStockItems.length && <Button
+						id="confirm-order-dialog"
 						onClick={handleConfirm}
 						variant="contained"
 						color="primary"
