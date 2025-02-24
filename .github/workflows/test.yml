@@ -37,11 +37,15 @@ jobs:
         docker build -t react-test-app -f Dockerfile.test .
         
         # Run the container with edge server setup
-        docker run -d --name test-container react-test-app /bin/bash -c \
+        docker run -d --name test-container \
+          -p 5173:5173 \
+          react-test-app /bin/bash -c \
           "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
            couchbase-edge-server --verbose config-tls-replication-sync.json & \
-           sleep 10 && \
-           npm test"
+           npm run dev & \
+           sleep 15 && \
+           npm run test:e2e && \
+           npm run testt"
         
         # Follow logs and exit based on test results
         docker logs -f test-container
