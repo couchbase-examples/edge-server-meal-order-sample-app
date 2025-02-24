@@ -47,8 +47,9 @@ jobs:
           COPY test/raw/resetdemo.sh /app/
           RUN chmod +x /usr/local/bin/couchbase-edge-server
           RUN chmod +x /app/resetdemo.sh
-          RUN npm install
-          RUN npx cypress install
+          RUN npm ci
+          RUN npm install cypress --save-dev
+          RUN npx cypress verify
           EOF
 
       - name: Build and run test container
@@ -64,8 +65,8 @@ jobs:
              sh resetdemo.sh & \
              npm run dev & \
              sleep 15 && \
-             npx cypress run && \
-             npm run testt"
+             npm run test && \
+             npx cypress run"
 
           # Follow logs and exit based on test results
           docker logs -f test-container
