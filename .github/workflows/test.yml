@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -22,12 +22,32 @@ jobs:
           cat << EOF > Dockerfile.test
           FROM node:latest
           WORKDIR /app
+          RUN apt-get update && apt-get install -y \
+              libgtk2.0-0 \
+              libgtk-3-0 \
+              libgbm-dev \
+              libnotify-dev \
+              libgconf-2-4 \
+              libnss3 \
+              libxss1 \
+              libasound2 \
+              libxtst6 \
+              xauth \
+              xvfb \
+              procps \
+              x11vnc \
+              x11-xkb-utils \
+              xfonts-100dpi \
+              xfonts-75dpi \
+              xfonts-scalable \
+              xvfb
           COPY . .
           COPY test/raw/couchbase-edge-server /usr/local/bin/
           COPY test/raw/config-tls-replication-sync.json /app/
           COPY test/raw/resetdemo.sh /app/
           RUN chmod +x /usr/local/bin/couchbase-edge-server
           RUN chmod +x /app/resetdemo.sh
+          RUN ./couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
           RUN npm install
           RUN npx cypress install
           EOF
@@ -41,8 +61,7 @@ jobs:
           docker run -d --name test-container \
             -p 5173:5173 \
             react-test-app /bin/bash -c \
-            "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
-             couchbase-edge-server --verbose config-tls-replication-sync.json & \
+            "sh /app/resetdemo.sh & \
              npm run dev & \
              sleep 15 && \
              npx cypress run && \
