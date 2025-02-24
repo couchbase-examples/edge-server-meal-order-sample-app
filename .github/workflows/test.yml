@@ -45,7 +45,7 @@ jobs:
              couchbase-edge-server --verbose config-tls-replication-sync.json & \
              npm run dev & \
              sleep 15 && \
-             npm run test:e2e && \
+             npx cypress run && \
              npm run testt"
 
           # Follow logs and exit based on test results
