@@ -14,29 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install and start Docker
-        run: |
-          # Install Docker CLI and colima (lightweight Docker Desktop alternative)
-          brew install docker
-          brew install colima
-
-          # Start colima with increased resources
-          colima start --cpu 4 --memory 8 --disk 100
-
-          # Wait for Docker daemon to be ready
-          for i in {1..30}; do
-            if docker info > /dev/null 2>&1; then
-              echo "Docker is ready!"
-              break
-            fi
-            echo "Waiting for Docker to be ready... ($i/30)"
-            sleep 2
-          done
-
-          # Verify Docker is running
-          docker info
-          docker version
-
       - name: Create .env file
         run: |
           echo "EDGE_SERVER_BASE_URL=http://localhost:60000" > .env
@@ -45,10 +22,10 @@ jobs:
         run: |
           # Create a Dockerfile for the test environment
           cat << EOF > Dockerfile.test
-          FROM --platform=linux/amd64 node:latest
+          FROM node:latest
           WORKDIR /app
 
-          # Install SSL certificates and macOS specific dependencies
+          # Install SSL certificates handling tools 
           RUN apt-get update && apt-get install -y \
               libgtk2.0-0 \
               libgtk-3-0 \
@@ -73,7 +50,6 @@ jobs:
               netcat-traditional \
               curl
 
-          # Copy application files
           COPY . .
           COPY test/raw/couchbase-edge-server /usr/local/bin/
           COPY test/raw/config-tls-replication-sync.json /app/
@@ -83,16 +59,12 @@ jobs:
           RUN mkdir -p ~/.pki/nssdb
           RUN certutil -d ~/.pki/nssdb -N --empty-password
 
-          # Make scripts executable and install dependencies
+          # Start services and run tests
           RUN chmod +x /usr/local/bin/couchbase-edge-server
           RUN chmod +x /app/resetdemo.sh
           RUN npm ci
           RUN npm install cypress --save-dev
           RUN npx cypress verify
-
-          # Set environment for macOS compatibility
-          ENV CYPRESS_VERIFY_TIMEOUT=100000
-          ENV CI=1
           EOF
 
       - name: Build and run test container
