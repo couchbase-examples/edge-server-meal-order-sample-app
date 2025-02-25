@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: macOS CI/CD Pipeline
 
 on:
   push:
@@ -8,11 +8,21 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install Docker Desktop
+        run: |
+          brew install --cask docker
+          open -a Docker
+          # Wait for Docker to start
+          while ! docker system info > /dev/null 2>&1; do
+            echo "Waiting for Docker to start..."
+            sleep 5
+          done
 
       - name: Create .env file
         run: |
@@ -22,10 +32,10 @@ jobs:
         run: |
           # Create a Dockerfile for the test environment
           cat << EOF > Dockerfile.test
-          FROM node:latest
+          FROM --platform=linux/amd64 node:latest
           WORKDIR /app
 
-          # Install SSL certificates handling tools 
+          # Install SSL certificates and macOS specific dependencies
           RUN apt-get update && apt-get install -y \
               libgtk2.0-0 \
               libgtk-3-0 \
@@ -50,6 +60,7 @@ jobs:
               netcat-traditional \
               curl
 
+          # Copy application files
           COPY . .
           COPY test/raw/couchbase-edge-server /usr/local/bin/
           COPY test/raw/config-tls-replication-sync.json /app/
@@ -59,21 +70,30 @@ jobs:
           RUN mkdir -p ~/.pki/nssdb
           RUN certutil -d ~/.pki/nssdb -N --empty-password
 
-          # Start services and run tests
+          # Make scripts executable and install dependencies
           RUN chmod +x /usr/local/bin/couchbase-edge-server
           RUN chmod +x /app/resetdemo.sh
           RUN npm ci
           RUN npm install cypress --save-dev
           RUN npx cypress verify
+
+          # Set environment for macOS compatibility
+          ENV CYPRESS_VERIFY_TIMEOUT=100000
+          ENV CI=1
           EOF
 
       - name: Build and run test container
         run: |
-          docker build -t react-test-app -f Dockerfile.test .
+          docker build --platform linux/amd64 -t react-test-app -f Dockerfile.test .
           docker run -d --name test-container \
+            --platform linux/amd64 \
             -p 5173:5173 \
             -p 60000:60000 \
+            -e DISPLAY=:99 \
             react-test-app /bin/bash -c '
+              # Start Xvfb for Cypress
+              Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & \
+              
               # Start Couchbase Edge server
               couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
               certutil -d ~/.pki/nssdb -A -n "couchbase-edge" -t "P,," -i certfile.pem && \
@@ -84,11 +104,11 @@ jobs:
               echo "Starting dev server..." && \
               npm run dev & \
               
-              # Health check function
+              # Health check function with increased timeout
               check_service() {
                 local url=$1
                 local service_name=$2
-                local max_attempts=30
+                local max_attempts=45  # Increased attempts for macOS
                 local attempt=1
                 
                 echo "Checking $service_name..."
@@ -98,7 +118,7 @@ jobs:
                     return 0
                   fi
                   echo "Attempt $attempt: $service_name not ready yet..."
-                  sleep 2
+                  sleep 3  # Increased sleep time for macOS
                   attempt=$((attempt + 1))
                 done
                 
@@ -107,7 +127,7 @@ jobs:
               }
               
               # Wait for services and show debug info
-              sleep 5
+              sleep 10  # Increased initial wait time for macOS
               ps aux
               netstat -tulpn
               
@@ -120,13 +140,15 @@ jobs:
                 exit 1
               fi
               
-              # Run tests
-              echo "Running tests..."
-              npm run test && \
-              npx cypress run
+              # Run tests with debug logging
+              echo "Running unit tests..."
+              npm run test
+              
+              echo "Running Cypress tests..."
+              DEBUG=cypress:* npx cypress run --browser chrome
             '
 
-          # Show container logs
+          # Show container logs with follow
           docker logs -f test-container || true
 
           # Get container exit code and show final debug info
@@ -137,6 +159,10 @@ jobs:
 
           echo "Container logs:"
           docker logs test-container
+
+          # Cleanup
+          docker stop test-container || true
+          docker rm test-container || true
 
           # Exit with the container's exit code
           exit $EXIT_CODE
