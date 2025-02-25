@@ -16,6 +16,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Create .env file
+        run: |
+          echo "EDGE_SERVER_BASE_URL=http://localhost:60000" > .env
+
       - name: Set up test environment
         run: |
           # Create a Dockerfile for the test environment
@@ -71,12 +75,21 @@ jobs:
             -p 60000:60000 \
             react-test-app /bin/bash -c \
             "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
-             certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
-             sh resetdemo.sh & \
-             npm run dev & \
-             sleep 15 && \
-             npm run test && \
-             npx cypress run"
+              certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
+              echo 'Starting Couchbase Edge server...' && \
+              sh resetdemo.sh & \
+              echo 'Waiting for Couchbase Edge server to be ready...' && \
+              while ! nc -z localhost 60000; do sleep 1; done && \
+              echo 'Couchbase Edge server is ready' && \
+              echo 'Starting dev server...' && \
+              npm run dev & \
+              echo 'Waiting for dev server to be ready...' && \
+              while ! nc -z localhost 5173; do sleep 1; done && \
+              echo 'Dev server is ready' && \
+              sleep 10 && \
+              echo 'Running tests...' && \
+              npm run test && \
+              npx cypress run"
 
           docker logs -f test-container
           exit $(docker inspect test-container --format='{{.State.ExitCode}}')
