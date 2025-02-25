@@ -1,4 +1,4 @@
-name: macOS CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -97,85 +97,124 @@ jobs:
 
       - name: Build and run test container
         run: |
-          docker build --platform linux/amd64 -t react-test-app -f Dockerfile.test .
+          docker build -t react-test-app -f Dockerfile.test .
+          
+          # Create a script to run inside the container
+          cat << 'EOF' > run-services.sh
+          #!/bin/bash
+          set -e
+
+          # Function to check if a service is running
+          check_service() {
+            local url=$1
+            local service_name=$2
+            local max_attempts=30
+            local attempt=1
+            
+            echo "Checking $service_name..."
+            while [ $attempt -le $max_attempts ]; do
+              if curl -sf "$url" > /dev/null; then
+                echo "$service_name is up!"
+                return 0
+              fi
+              echo "Attempt $attempt/$max_attempts: $service_name not ready..."
+              sleep 2
+              attempt=$((attempt + 1))
+            done
+            
+            echo "$service_name failed to start"
+            return 1
+          }
+
+          # Start Couchbase Edge server in a separate terminal
+          echo "Starting Couchbase Edge server..."
+          couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
+          certutil -d ~/.pki/nssdb -A -n "couchbase-edge" -t "P,," -i certfile.pem
+          
+          # Start the edge server in background with its own log file
+          sh resetdemo.sh > edge-server.log 2>&1 &
+          EDGE_PID=$!
+          
+          # Start dev server in background with its own log file
+          echo "Starting dev server..."
+          npm run dev > dev-server.log 2>&1 &
+          DEV_PID=$!
+
+          # Wait and check services
+          echo "Waiting for services to start..."
+          sleep 5
+
+          # Show running processes
+          echo "Running processes:"
+          ps aux
+
+          # Show network status
+          echo "Network status:"
+          netstat -tulpn
+
+          # Check if edge server is running
+          if ! check_service "http://localhost:60000" "Couchbase Edge server"; then
+            echo "Edge server logs:"
+            cat edge-server.log
+            exit 1
+          fi
+
+          # Check if dev server is running
+          if ! check_service "http://localhost:5173" "Dev server"; then
+            echo "Dev server logs:"
+            cat dev-server.log
+            exit 1
+          fi
+
+          # Tail both log files in background
+          tail -f edge-server.log &
+          tail -f dev-server.log &
+
+          # Run tests
+          echo "Running tests..."
+          npm run test
+          TEST_EXIT_CODE=$?
+
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "Running Cypress tests..."
+            npx cypress run
+            CYPRESS_EXIT_CODE=$?
+          else
+            CYPRESS_EXIT_CODE=1
+          fi
+
+          # Kill background processes
+          kill $EDGE_PID $DEV_PID
+
+          # Exit with appropriate code
+          [ $TEST_EXIT_CODE -eq 0 ] && [ $CYPRESS_EXIT_CODE -eq 0 ]
+          EOF
+
+          # Make the script executable
+          chmod +x run-services.sh
+
+          # Run the container with the script
           docker run -d --name test-container \
-            --platform linux/amd64 \
             -p 5173:5173 \
             -p 60000:60000 \
-            -e DISPLAY=:99 \
-            react-test-app /bin/bash -c '
-              # Start Xvfb for Cypress
-              Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & \
-              
-              # Start Couchbase Edge server
-              couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
-              certutil -d ~/.pki/nssdb -A -n "couchbase-edge" -t "P,," -i certfile.pem && \
-              echo "Starting Couchbase Edge server..." && \
-              sh resetdemo.sh & \
-              
-              # Start dev server
-              echo "Starting dev server..." && \
-              npm run dev & \
-              
-              # Health check function with increased timeout
-              check_service() {
-                local url=$1
-                local service_name=$2
-                local max_attempts=45  # Increased attempts for macOS
-                local attempt=1
-                
-                echo "Checking $service_name..."
-                while [ $attempt -le $max_attempts ]; do
-                  if curl -s "$url" > /dev/null; then
-                    echo "$service_name is up!"
-                    return 0
-                  fi
-                  echo "Attempt $attempt: $service_name not ready yet..."
-                  sleep 3  # Increased sleep time for macOS
-                  attempt=$((attempt + 1))
-                done
-                
-                echo "$service_name failed to start after $max_attempts attempts"
-                return 1
-              }
-              
-              # Wait for services and show debug info
-              sleep 10  # Increased initial wait time for macOS
-              ps aux
-              netstat -tulpn
-              
-              # Check services
-              if ! check_service "http://localhost:60000" "Couchbase Edge server"; then
-                exit 1
-              fi
-              
-              if ! check_service "http://localhost:5173" "Dev server"; then
-                exit 1
-              fi
-              
-              # Run tests with debug logging
-              echo "Running unit tests..."
-              npm run test
-              
-              echo "Running Cypress tests..."
-              DEBUG=cypress:* npx cypress run --browser chrome
-            '
+            -v $(pwd)/run-services.sh:/app/run-services.sh \
+            react-test-app /app/run-services.sh
 
-          # Show container logs with follow
+          # Follow container logs
           docker logs -f test-container || true
 
-          # Get container exit code and show final debug info
-          EXIT_CODE=$(docker inspect test-container --format="{{.State.ExitCode}}")
+          # Get container exit code
+          EXIT_CODE=$(docker inspect test-container --format='{{.State.ExitCode}}')
 
-          echo "Final container state:"
-          docker inspect test-container --format="{{.State.Status}}"
+          # Show final status and logs
+          echo "Container status:"
+          docker inspect test-container --format='{{.State.Status}}'
 
-          echo "Container logs:"
-          docker logs test-container
+          echo "Edge server logs:"
+          docker exec test-container cat edge-server.log || true
 
-          # Cleanup
-          docker stop test-container || true
-          docker rm test-container || true
+          echo "Dev server logs:"
+          docker exec test-container cat dev-server.log || true
 
-          # Exit with the container's exit code
+          # Exit with container's exit code
           exit $EXIT_CODE
