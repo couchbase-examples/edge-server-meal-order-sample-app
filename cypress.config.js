@@ -1,3 +1,4 @@
+// cypress.config.js
 import { defineConfig } from 'cypress'
 
 export default defineConfig({
@@ -14,11 +15,20 @@ export default defineConfig({
       runMode: 2,
       openMode: 0
     },
-    // Add these configurations
     requestTimeout: 30000,
     responseTimeout: 30000,
     env: {
       NODE_TLS_REJECT_UNAUTHORIZED: '0'
+    },
+    setupNodeEvents(on, config) {
+      on('before:browser:launch', (browser = {}, launchOptions) => {
+        // Force Chrome to ignore certificate errors
+        if (browser.name === 'chrome') {
+          launchOptions.args.push('--ignore-certificate-errors');
+          launchOptions.args.push('--disable-network-error-logging');
+        }
+        return launchOptions;
+      });
     }
   },
   component: {
