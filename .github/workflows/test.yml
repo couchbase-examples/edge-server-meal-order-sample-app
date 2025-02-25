@@ -51,6 +51,9 @@ jobs:
               curl
 
           COPY . .
+
+          # Make the edge server executable and copy it
+          RUN chmod +x test/raw/couchbase-edge-server
           COPY test/raw/couchbase-edge-server /usr/local/bin/
           COPY test/raw/config-tls-replication-sync.json /app/
           COPY test/raw/resetdemo.sh /app/
@@ -59,18 +62,19 @@ jobs:
           RUN mkdir -p ~/.pki/nssdb
           RUN certutil -d ~/.pki/nssdb -N --empty-password
 
-          # Start services and run tests
-          RUN chmod +x /usr/local/bin/couchbase-edge-server
-          RUN chmod +x /app/resetdemo.sh
+          # Install dependencies
           RUN npm ci
           RUN npm install cypress --save-dev
           RUN npx cypress verify
+
+          # Make scripts executable
+          RUN chmod +x /app/resetdemo.sh
           EOF
 
       - name: Build and run test container
         run: |
           docker build -t react-test-app -f Dockerfile.test .
-          
+
           # Create a script to run inside the container
           cat << 'EOF' > run-services.sh
           #!/bin/bash
@@ -98,15 +102,22 @@ jobs:
             return 1
           }
 
+          # Start Xvfb
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          export DISPLAY=:99
+
           # Start Couchbase Edge server in a separate terminal
           echo "Starting Couchbase Edge server..."
-          couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
+          file /usr/local/bin/couchbase-edge-server
+          ldd /usr/local/bin/couchbase-edge-server || true
+
+          /usr/local/bin/couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
           certutil -d ~/.pki/nssdb -A -n "couchbase-edge" -t "P,," -i certfile.pem
-          
+
           # Start the edge server in background with its own log file
           sh resetdemo.sh > edge-server.log 2>&1 &
           EDGE_PID=$!
-          
+
           # Start dev server in background with its own log file
           echo "Starting dev server..."
           npm run dev > dev-server.log 2>&1 &
@@ -149,7 +160,7 @@ jobs:
 
           if [ $TEST_EXIT_CODE -eq 0 ]; then
             echo "Running Cypress tests..."
-            npx cypress run
+            DISPLAY=:99 npx cypress run
             CYPRESS_EXIT_CODE=$?
           else
             CYPRESS_EXIT_CODE=1
@@ -169,6 +180,7 @@ jobs:
           docker run -d --name test-container \
             -p 5173:5173 \
             -p 60000:60000 \
+            --privileged \
             -v $(pwd)/run-services.sh:/app/run-services.sh \
             react-test-app /app/run-services.sh
 
