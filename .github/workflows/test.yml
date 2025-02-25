@@ -2,11 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   test:
@@ -27,28 +25,30 @@ jobs:
           FROM node:latest
           WORKDIR /app
 
-          # Install SSL certificates handling tools
-          RUN apt-get update && apt-get install -y \
-              libgtk2.0-0 \
-              libgtk-3-0 \
-              libgbm-dev \
-              libnotify-dev \
-              libgconf-2-4 \
-              libnss3 \
-              libxss1 \
-              libasound2 \
-              libxtst6 \
-              xauth \
-              xvfb \
-              procps \
-              x11vnc \
-              x11-xkb-utils \
-              xfonts-100dpi \
-              xfonts-75dpi \
-              xfonts-scalable \
-              xvfb \
-              ca-certificates \
-              libnss3-tools
+          # Install SSL certificates handling tools 
+            RUN apt-get update && apt-get install -y \
+                libgtk2.0-0 \
+                libgtk-3-0 \
+                libgbm-dev \
+                libnotify-dev \
+                libgconf-2-4 \
+                libnss3 \
+                libxss1 \
+                libasound2 \
+                libxtst6 \
+                xauth \
+                xvfb \
+                procps \
+                x11vnc \
+                x11-xkb-utils \
+                xfonts-100dpi \
+                xfonts-75dpi \
+                xfonts-scalable \
+                xvfb \
+                ca-certificates \
+                libnss3-tools \
+                netcat-traditional \
+                curl
 
           COPY . .
           COPY test/raw/couchbase-edge-server /usr/local/bin/
@@ -78,18 +78,37 @@ jobs:
               certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
               echo 'Starting Couchbase Edge server...' && \
               sh resetdemo.sh & \
-              echo 'Waiting for Couchbase Edge server to be ready...' && \
-              while ! nc -z localhost 60000; do sleep 1; done && \
-              echo 'Couchbase Edge server is ready' && \
+              EDGE_PID=\$! && \
               echo 'Starting dev server...' && \
               npm run dev & \
-              echo 'Waiting for dev server to be ready...' && \
-              while ! nc -z localhost 5173; do sleep 1; done && \
-              echo 'Dev server is ready' && \
-              sleep 10 && \
+              DEV_PID=\$! && \
+              echo 'Waiting for services to be ready...' && \
+              sleep 15 && \
+              echo 'Checking if services are running...' && \
+              if ! curl -s http://localhost:60000 > /dev/null; then \
+                echo 'Couchbase Edge server is not responding' && \
+                exit 1; \
+              fi && \
+              if ! curl -s http://localhost:5173 > /dev/null; then \
+                echo 'Dev server is not responding' && \
+                exit 1; \
+              fi && \
+              echo 'Services are ready' && \
               echo 'Running tests...' && \
               npm run test && \
               npx cypress run"
 
-          docker logs -f test-container
-          exit $(docker inspect test-container --format='{{.State.ExitCode}}')
+          # Check container logs
+          docker logs -f test-container || true
+          
+          # Get container exit code
+          EXIT_CODE=$(docker inspect test-container --format='{{.State.ExitCode}}')
+          
+          # Print container processes and network status for debugging
+          echo "Container processes:"
+          docker exec test-container ps aux || true
+          echo "Network status:"
+          docker exec test-container netstat -tulpn || true
+          
+          # Exit with the container's exit code
+          exit $EXIT_CODE
