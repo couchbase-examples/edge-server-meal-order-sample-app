@@ -8,6 +8,7 @@ export default defineConfig({
     viewportHeight: 720,
     video: false, // Disable video recording for faster tests
     screenshotOnRunFailure: true,
+    chromeWebSecurity: false,
     defaultCommandTimeout: 10000,
     supportFile: false,
     retries: {
