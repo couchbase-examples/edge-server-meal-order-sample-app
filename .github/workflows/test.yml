@@ -26,31 +26,34 @@ jobs:
           WORKDIR /app
 
           # Install SSL certificates handling tools 
-            RUN apt-get update && apt-get install -y \
-                libgtk2.0-0 \
-                libgtk-3-0 \
-                libgbm-dev \
-                libnotify-dev \
-                libgconf-2-4 \
-                libnss3 \
-                libxss1 \
-                libasound2 \
-                libxtst6 \
-                xauth \
-                xvfb \
-                procps \
-                x11vnc \
-                x11-xkb-utils \
-                xfonts-100dpi \
-                xfonts-75dpi \
-                xfonts-scalable \
-                xvfb \
-                ca-certificates \
-                libnss3-tools \
-                netcat-traditional \
-                curl
+          RUN apt-get update && apt-get install -y \
+              libgtk2.0-0 \
+              libgtk-3-0 \
+              libgbm-dev \
+              libnotify-dev \
+              libgconf-2-4 \
+              libnss3 \
+              libxss1 \
+              libasound2 \
+              libxtst6 \
+              xauth \
+              xvfb \
+              procps \
+              x11vnc \
+              x11-xkb-utils \
+              xfonts-100dpi \
+              xfonts-75dpi \
+              xfonts-scalable \
+              xvfb \
+              ca-certificates \
+              libnss3-tools \
+              netcat-traditional \
+              curl
 
           COPY . .
+
+          # Make the edge server executable and copy it
+          RUN chmod +x test/raw/couchbase-edge-server
           COPY test/raw/couchbase-edge-server /usr/local/bin/
           COPY test/raw/config-tls-replication-sync.json /app/
           COPY test/raw/resetdemo.sh /app/
@@ -59,56 +62,143 @@ jobs:
           RUN mkdir -p ~/.pki/nssdb
           RUN certutil -d ~/.pki/nssdb -N --empty-password
 
-          # Start services and run tests
-          RUN chmod +x /usr/local/bin/couchbase-edge-server
-          RUN chmod +x /app/resetdemo.sh
+          # Install dependencies
           RUN npm ci
           RUN npm install cypress --save-dev
           RUN npx cypress verify
+
+          # Make scripts executable
+          RUN chmod +x /app/resetdemo.sh
           EOF
 
       - name: Build and run test container
         run: |
           docker build -t react-test-app -f Dockerfile.test .
+
+          # Create a script to run inside the container
+          cat << 'EOF' > run-services.sh
+          #!/bin/bash
+          set -e
+
+          # Function to check if a service is running
+          check_service() {
+            local url=$1
+            local service_name=$2
+            local max_attempts=30
+            local attempt=1
+            
+            echo "Checking $service_name..."
+            while [ $attempt -le $max_attempts ]; do
+              if curl -sf "$url" > /dev/null; then
+                echo "$service_name is up!"
+                return 0
+              fi
+              echo "Attempt $attempt/$max_attempts: $service_name not ready..."
+              sleep 2
+              attempt=$((attempt + 1))
+            done
+            
+            echo "$service_name failed to start"
+            return 1
+          }
+
+          # Start Xvfb
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          export DISPLAY=:99
+
+          # Start Couchbase Edge server in a separate terminal
+          echo "Starting Couchbase Edge server..."
+          file /usr/local/bin/couchbase-edge-server
+          ldd /usr/local/bin/couchbase-edge-server || true
+
+          /usr/local/bin/couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile
+          certutil -d ~/.pki/nssdb -A -n "couchbase-edge" -t "P,," -i certfile.pem
+
+          # Start the edge server in background with its own log file
+          sh resetdemo.sh > edge-server.log 2>&1 &
+          EDGE_PID=$!
+
+          # Start dev server in background with its own log file
+          echo "Starting dev server..."
+          npm run dev > dev-server.log 2>&1 &
+          DEV_PID=$!
+
+          # Wait and check services
+          echo "Waiting for services to start..."
+          sleep 5
+
+          # Show running processes
+          echo "Running processes:"
+          ps aux
+
+          # Show network status
+          echo "Network status:"
+          netstat -tulpn
+
+          # Check if edge server is running
+          if ! check_service "http://localhost:60000" "Couchbase Edge server"; then
+            echo "Edge server logs:"
+            cat edge-server.log
+            exit 1
+          fi
+
+          # Check if dev server is running
+          if ! check_service "http://localhost:5173" "Dev server"; then
+            echo "Dev server logs:"
+            cat dev-server.log
+            exit 1
+          fi
+
+          # Tail both log files in background
+          tail -f edge-server.log &
+          tail -f dev-server.log &
+
+          # Run tests
+          echo "Running tests..."
+          npm run test
+          TEST_EXIT_CODE=$?
+
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "Running Cypress tests..."
+            DISPLAY=:99 npx cypress run
+            CYPRESS_EXIT_CODE=$?
+          else
+            CYPRESS_EXIT_CODE=1
+          fi
+
+          # Kill background processes
+          kill $EDGE_PID $DEV_PID
+
+          # Exit with appropriate code
+          [ $TEST_EXIT_CODE -eq 0 ] && [ $CYPRESS_EXIT_CODE -eq 0 ]
+          EOF
+
+          # Make the script executable
+          chmod +x run-services.sh
+
+          # Run the container with the script
           docker run -d --name test-container \
             -p 5173:5173 \
             -p 60000:60000 \
-            react-test-app /bin/bash -c \
-            "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
-              certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
-              echo 'Starting Couchbase Edge server...' && \
-              sh resetdemo.sh & \
-              EDGE_PID=\$! && \
-              echo 'Starting dev server...' && \
-              npm run dev & \
-              DEV_PID=\$! && \
-              echo 'Waiting for services to be ready...' && \
-              sleep 15 && \
-              echo 'Checking if services are running...' && \
-              if ! curl -s http://localhost:60000 > /dev/null; then \
-                echo 'Couchbase Edge server is not responding' && \
-                exit 1; \
-              fi && \
-              if ! curl -s http://localhost:5173 > /dev/null; then \
-                echo 'Dev server is not responding' && \
-                exit 1; \
-              fi && \
-              echo 'Services are ready' && \
-              echo 'Running tests...' && \
-              npm run test && \
-              npx cypress run"
+            --privileged \
+            -v $(pwd)/run-services.sh:/app/run-services.sh \
+            react-test-app /app/run-services.sh
 
-          # Check container logs
+          # Follow container logs
           docker logs -f test-container || true
-          
+
           # Get container exit code
           EXIT_CODE=$(docker inspect test-container --format='{{.State.ExitCode}}')
-          
-          # Print container processes and network status for debugging
-          echo "Container processes:"
-          docker exec test-container ps aux || true
-          echo "Network status:"
-          docker exec test-container netstat -tulpn || true
-          
-          # Exit with the container's exit code
+
+          # Show final status and logs
+          echo "Container status:"
+          docker inspect test-container --format='{{.State.Status}}'
+
+          echo "Edge server logs:"
+          docker exec test-container cat edge-server.log || true
+
+          echo "Dev server logs:"
+          docker exec test-container cat dev-server.log || true
+
+          # Exit with container's exit code
           exit $EXIT_CODE
