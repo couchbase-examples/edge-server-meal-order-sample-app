@@ -72,9 +72,12 @@ jobs:
             react-test-app /bin/bash -c \
             "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
              certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
-             sh resetdemo.sh & \
+             couchbase-edge-server --verbose config-tls-replication-sync.json & \
+             sleep 10 && \
+             sh resetdemo.sh && \
              npm run dev & \
              sleep 15 && \
+             wget --retry-connrefused --tries=30 --waitretry=1 -q http://localhost:60000/ -O /dev/null && \
              npm run test && \
              npx cypress run"
 
