@@ -14,15 +14,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Docker Desktop
+      - name: Install and start Docker
         run: |
-          brew install --cask docker
-          open -a Docker
-          # Wait for Docker to start
-          while ! docker system info > /dev/null 2>&1; do
-            echo "Waiting for Docker to start..."
-            sleep 5
+          # Install Docker CLI and colima (lightweight Docker Desktop alternative)
+          brew install docker
+          brew install colima
+
+          # Start colima with increased resources
+          colima start --cpu 4 --memory 8 --disk 100
+
+          # Wait for Docker daemon to be ready
+          for i in {1..30}; do
+            if docker info > /dev/null 2>&1; then
+              echo "Docker is ready!"
+              break
+            fi
+            echo "Waiting for Docker to be ready... ($i/30)"
+            sleep 2
           done
+
+          # Verify Docker is running
+          docker info
+          docker version
 
       - name: Create .env file
         run: |
