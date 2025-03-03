@@ -18,8 +18,8 @@ The setup would be as follows
 Although instructions are specified for Capella, equivalent instructions apply to self managed couchbase server as well. 
 
 * Sign up for Capella Free Tier and [follow the steps](https://docs.couchbase.com/cloud/get-started/create-account.html) to deploy a free tier cluster. 
-*  Follow [bucket creation instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-buckets.html#add-bucket) to create a *bucket* named "mealordering" 
-*  Follow [scope creation instructions](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#scopes) to create a *scope* named "AmericanAirlines" and follow the [collectin creation instructions](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#collections) to create a *collection* named "AA234"
+*  Follow [instructions to create bucket](https://docs.couchbase.com/cloud/clusters/data-service/manage-buckets.html#add-bucket) to create a *bucket* named "mealordering" 
+*  Follow [scope creation instructions](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#scopes) to create a *scope* named "AmericanAirlines" and follow the [instructions to create collection](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#collections) to create a *collection* named "AA234"
 
    ![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-create-doc-e1740526024180.png)
 *  Download **"mealordering.zip"** sample data set from [this location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/mealordering.zip). It includes 4 documents
@@ -28,7 +28,7 @@ Although instructions are specified for Capella, equivalent instructions apply t
     - economyinventory.json
     - economymeal.json
 
-*  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope nameed "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docIs of "businessinventory" and copy contents of it.
+*  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope nameed "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docId of "businessinventory" and copy contents of the sample JSON file to the document body.
 
 ![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/Screenshot-2025-02-25-at-6.44.52-PM-e1740527146821.png)
 
@@ -57,11 +57,13 @@ Although instructions are specified for Capella App Services, equivalent instruc
 ### Couchbase Edge Server Setup
 The instructions below describe how to deploy and run edge server on your local Mac machine. The equivalent instructions should apply to Linux based machine as well.
 
-* Download Edge Server binary from ![](https://www.couchbase.com/downloads?family=edge-server)
-* Download Edge Server configuration zip file named **"config-edge-server.zip"** from this [location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/config-edge-server.zip)
-* Unzip the contents of the package. It should include the following
-      - **usersfile**: This includes the list of web users who can access data from Edge Server. This is the credentials with which the web app authenticates itself
-      - **certfile.pem** and **keyfile**: The edge server is configured to startup with anonymous self signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that. We'd recommend you follow the Edge Server documentation to generate own certificate and private key.
+* Download Edge Server binary from the [downloads page](https://www.couchbase.com/downloads?family=edge-server)
+* Download the associated configuration .zip file named **"config-edge-server.zip"** from this [location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/config-edge-server.zip)
+* Unzip the contents of the package. It will include the following
+      - **usersfile**: This includes the list of web users who can access data from Edge Server. These are the credentials with which the web app authenticates with the server.
+         - [Optional] If you are interested in learning about how to generate your own users, run  `./couchbase-edge-server --help` command to get more details 
+      - **certfile.pem** and **keyfile**: The edge server is configured to startup with anonymous self signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that. 
+         - [Optional] If you are interested in how you can generate your own anonymous self signed certfile and keyfile run the `./couchbase-edge-server --help` command to get more details. We'd recommend you follow the Edge Server documentation to generate own certificate and private key. 
 * Open the the config file named "config-tls-replication-sync.json" and edit file as follows -
       -   in the Replication section, replace these placeholders 
          ```bash
