@@ -5,7 +5,8 @@ The sample React-based web application simulates an airline seat back applicatio
 
 ## Setup & Technology Stack
 
-The setup would be as follows
+The setup would be as follows:
+
 ![](./public/assets/screenshots/edge-sample-app-setup.png)
 
 * Capella / Capella App Services
