@@ -6,7 +6,7 @@ The sample React-based web application simulates an airline seat back applicatio
 ## Setup & Technology Stack
 
 The setup would be as follows
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-app-setup-e1740436672145.png)
+![](./public/assets/screenshots/edge-sample-app-setup.png)
 
 * Capella / Capella App Services
 * Couchbase Edge Server
@@ -21,7 +21,7 @@ Although instructions are specified for Capella, equivalent instructions apply t
 *  Follow [instructions to create bucket](https://docs.couchbase.com/cloud/clusters/data-service/manage-buckets.html#add-bucket) to create a *bucket* named "mealordering" 
 *  Follow [scope creation instructions](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#scopes) to create a *scope* named "AmericanAirlines" and follow the [instructions to create collection](https://docs.couchbase.com/cloud/clusters/data-service/about-buckets-scopes-collections.html#collections) to create a *collection* named "AA234"
 
-   ![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-create-doc-e1740526024180.png)
+   ![](./public/assets/screenshots/edge-sample-create-doc.png)
 *  Download **"mealordering.zip"** sample data set from [this location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/mealordering.zip). It includes 4 documents
     - businessinventory.json
     - businessmeal.json
@@ -30,10 +30,10 @@ Although instructions are specified for Capella, equivalent instructions apply t
 
 *  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope nameed "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docId of "businessinventory" and copy contents of the sample JSON file to the document body.
 
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/Screenshot-2025-02-25-at-6.44.52-PM-e1740527146821.png)
+![](./public/assets/screenshots/create-new-document.png)
 
-At the end of the setup, your Capella Setup looks like this :-
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-cluster-e1740446463671.png)
+At the end of the setup, your Capella Setup looks like this:
+![](./public/assets/screenshots/edge-sample-cluster.png)
 
 ### Capella App Services
 Although instructions are specified for Capella App Services, equivalent instructions apply to self managed sync gateway as well. 
@@ -42,16 +42,17 @@ Although instructions are specified for Capella App Services, equivalent instruc
 *  Create an *App Endpoint* named "american234" by following these [instructioncs](https://docs.couchbase.com/cloud/get-started/configuring-app-services.html#create-app-endpoint). When you create App Endpoint, link it to bucket named "mealordering", the scope named "AmericanAirlines" and collection named "AA234"
 
    The configuration should looking something like this
-   ![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-appendpoint-e1740446441680.png)
+   ![](./public/assets/screenshots/edge-sample-appendpoint.png)
 
 *  Create an App User named "edgeserver234".  Remember what password you use as you will need to configure your Edge Server later. 
       - Set up the access grant so the App User is grantsed access to the  channelnamed "AA234" in corresponding collection.
 
    The configuration of App User should look something like this
-   ![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-app-user-e1740441491684.png)
+
+   ![](./public/assets/screenshots/edge-sample-app-user.png)
 
 *  Go to the "connect" tab and record the public URL endpoint. You will need it when you configure your Edge Server
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-connect-1-e1740441640142.png)
+![](./public/assets/screenshots/edge-sample-connect.png)
 
 
 ### Couchbase Edge Server Setup
@@ -130,10 +131,12 @@ Follow these steps to set up and run the application locally on the same machine
    - `http://localhost:5173/economy` will open up the economy version of app
 
 * Disconnect the local machine from the Internet so it cannot access the remote App Services. In this scenaario, the Edge Server and the web app are disconnected from Internet
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-app-business-e1740445568731.png)
+
+![](./public/assets/screenshots/edge-sample-app-business.png)
 
 * Place some orders via the app. 
-![](https://www.couchbase.com/blog/wp-content/uploads/sites/1/2025/02/edge-sample-app-place-order-e1740445890243.png)
+
+![](./public/assets/screenshots/edge-sample-app-place-order.png)
 
 
 You will see corresponding requests show up in the console output of the Edge Server, similar to ones below
