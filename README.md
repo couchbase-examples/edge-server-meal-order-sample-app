@@ -53,6 +53,7 @@ Although instructions are specified for Capella App Services, equivalent instruc
    ![](./public/assets/screenshots/edge-sample-app-user.png)
 
 *  Go to the "connect" tab and record the public URL endpoint. You will need it when you configure your Edge Server
+
 ![](./public/assets/screenshots/edge-sample-connect.png)
 
 
