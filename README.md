@@ -29,7 +29,7 @@ Although instructions are specified for Capella, equivalent instructions apply t
     - economyinventory.json
     - economymeal.json
 
-*  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope nameed "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docId of "businessinventory" and copy contents of the sample JSON file to the document body.
+*  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope named "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docId of "businessinventory" and copy contents of the sample JSON file to the document body.
 
 ![](./public/assets/screenshots/create-new-document.png)
 
@@ -40,13 +40,13 @@ At the end of the setup, your Capella Setup looks like this:
 Although instructions are specified for Capella App Services, equivalent instructions apply to self managed sync gateway as well. 
 
 *  Follow [instructions](https://docs.couchbase.com/cloud/get-started/create-account.html#app-services) to create a free tier App Services that links to the free tier cluster that was created in previous step
-*  Create an *App Endpoint* named "american234" by following these [instructioncs](https://docs.couchbase.com/cloud/get-started/configuring-app-services.html#create-app-endpoint). When you create App Endpoint, link it to bucket named "mealordering", the scope named "AmericanAirlines" and collection named "AA234"
+*  Create an *App Endpoint* named "american234" by following these [instructions](https://docs.couchbase.com/cloud/get-started/configuring-app-services.html#create-app-endpoint). When you create App Endpoint, link it to bucket named "mealordering", the scope named "AmericanAirlines" and collection named "AA234"
 
    The configuration should looking something like this
    ![](./public/assets/screenshots/edge-sample-appendpoint.png)
 
 *  Create an App User named "edgeserver234".  Remember what password you use as you will need to configure your Edge Server later. 
-      - Set up the access grant so the App User is grantsed access to the  channelnamed "AA234" in corresponding collection.
+      - Set up the access grant so the App User is granted access to the  channel named "AA234" in corresponding collection.
 
    The configuration of App User should look something like this
 
@@ -89,7 +89,7 @@ The instructions below describe how to deploy and run edge server on your local 
          - The source should correspond to the public URL that you get from the Connect tab of App Endpoint
          - The password should be the password corresponding to the App User that you created on App Endpoint
 
-* Start the edge server. It was start listening for incoming connections on port 60000 (you can change that in yout config file)
+* Start the edge server. It will start listening for incoming connections on port 60000 (you can change that in yout config file)
 
       ```bash
          ./couchbase-edge-server  --verbose  config-tls-replication-sync.json
