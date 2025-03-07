@@ -62,7 +62,7 @@ The instructions below describe how to deploy and run edge server on your local 
 
 * Download Edge Server binary from the [downloads page](https://www.couchbase.com/downloads?family=edge-server)
 * Download the associated configuration .zip file named **"config-edge-server.zip"** from this [location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/config-edge-server.zip)
-* Unzip the contents of the package. It will include the following
+* Unzip the contents of the package and place them in the same directory as your Edge Server executable. It will include the following
       - **usersfile**: This includes the list of web users who can access data from Edge Server. These are the credentials with which the web app authenticates with the server.
          - [Optional] If you are interested in learning about how to generate your own users, run  `./couchbase-edge-server --help` command to get more details 
       - **certfile.pem** and **keyfile**: The edge server is configured to startup with anonymous self signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that. 
