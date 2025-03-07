@@ -31,7 +31,7 @@ Although instructions are specified for Capella, equivalent instructions apply t
 
 *  Follow [instructions](https://docs.couchbase.com/cloud/clusters/data-service/manage-documents.html#create-documents) to create sample documents corresponding to each of the documents above. Add it to to specified bucket named "mealordering", scope named "AmericanAirlines" and collection named "AA234" created in previous step. So for example, create a document with docId of "businessinventory" and copy contents of the sample JSON file to the document body.
 
-![](./public/assets/screenshots/create-new-document.png)
+   ![](./public/assets/screenshots/create-new-document.png)
 
 At the end of the setup, your Capella Setup looks like this:
 ![](./public/assets/screenshots/edge-sample-cluster.png)
@@ -54,7 +54,7 @@ Although instructions are specified for Capella App Services, equivalent instruc
 
 *  Go to the "connect" tab and record the public URL endpoint. You will need it when you configure your Edge Server
 
-![](./public/assets/screenshots/edge-sample-connect.png)
+   ![](./public/assets/screenshots/edge-sample-connect.png)
 
 
 ### Couchbase Edge Server Setup
@@ -68,34 +68,40 @@ The instructions below describe how to deploy and run edge server on your local 
       - **certfile.pem** and **keyfile**: The edge server is configured to startup with anonymous self signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that. 
          - [Optional] If you are interested in how you can generate your own anonymous self signed certfile and keyfile run the `./couchbase-edge-server --help` command to get more details. We'd recommend you follow the Edge Server documentation to generate own certificate and private key. 
 * Open the the config file named "config-tls-replication-sync.json" and edit file as follows -
-      -   in the Replication section, replace these placeholders 
-         ```bash
-         "replications":[
-            {
-               // setup a bidirectional continous replication
-	            "source":"<<REPLACE WITH THE PUBLIC URL FROM CONNECT PAGE>>",
-               "target":"american234",
-               "bidirectional": true,
-               "continuous":true,
-               "collections":{"AmericanAirlines.AA234":{}},
-                "auth":{
-                  "user":"edgeserver234", // user setup on remote app services/Sync Gateway
-                  "password":"<<REPLACE WITH PASSWORD OF APP USER>>" // user setup on remote app services/Sync Gateway
-               }
-            }
-         ]
-         ```
+   - In the Replication section, replace these placeholders:
 
-         - The source should correspond to the public URL that you get from the Connect tab of App Endpoint
-         - The password should be the password corresponding to the App User that you created on App Endpoint
+```json
+{
+   "replications": [
+      {
+         // setup a bidirectional continuous replication
+         "source": "<<REPLACE WITH THE PUBLIC URL FROM CONNECT PAGE>>",
+         "target": "american234",
+         "bidirectional": true,
+         "continuous": true,
+         "collections": {
+            "AmericanAirlines.AA234": {}
+         },
+         "auth": {
+            "user": "edgeserver234",        // user setup on remote app services/Sync Gateway
+            "password": "<<REPLACE WITH PASSWORD OF APP USER>>" // user setup on remote app services/Sync Gateway
+         }
+      }
+   ]
+}
+```
 
-* Start the edge server. It will start listening for incoming connections on port 60000 (you can change that in yout config file)
+     - The source should correspond to the public URL that you get from the Connect tab of App Endpoint
+     - The password should be the password corresponding to the App User that you created on App Endpoint
+
+
+* Start the edge server. It will start listening for incoming connections on port 60000 (you can change that in your config file):
 
       ```bash
          ./couchbase-edge-server  --verbose  config-tls-replication-sync.json
       ```
 
-      If everything is setup properly, the Edge Server wull sync down documents from remote App Services
+      If everything is setup properly, the Edge Server will sync down documents from remote App Services.
 
 ### Web App Setup 
 
@@ -132,13 +138,13 @@ Follow these steps to set up and run the application locally on the same machine
    - `http://localhost:5173` will open up the business version of app
    - `http://localhost:5173/economy` will open up the economy version of app
 
-* Disconnect the local machine from the Internet so it cannot access the remote App Services. In this scenaario, the Edge Server and the web app are disconnected from Internet
+* Disconnect the local machine from the Internet so it cannot access the remote App Services. In this scenario, the Edge Server and the web app are disconnected from Internet.
 
-![](./public/assets/screenshots/edge-sample-app-business.png)
+   ![](./public/assets/screenshots/edge-sample-app-business.png)
 
 * Place some orders via the app. 
 
-![](./public/assets/screenshots/edge-sample-app-place-order.png)
+   ![](./public/assets/screenshots/edge-sample-app-place-order.png)
 
 
 You will see corresponding requests show up in the console output of the Edge Server, similar to ones below
