@@ -1,6 +1,6 @@
 ## Introduction
 
-The sample React-based web application simulates an airline seat back application, that allows users in business and economy class to place their in-flight meal orders. The sample app leverages **Couchbase Edge Server** for data storage and processing at the edge, simulating a disconnected offline experience within an aircraft. The seatback web app accesses Edge Server via RESTful interface. When there is Internet connectivity, the **Edge Sever syncs data with remote Capella App Services**.
+The sample React-based web application simulates an airline seat back application, that allows users in business and economy class to place their in-flight meal orders. The sample app leverages **Couchbase Edge Server** for data storage and processing at the edge, simulating a disconnected offline experience within an aircraft. The seatback web app accesses Edge Server via RESTful interface. When there is Internet connectivity, the **Edge Server syncs data with remote Capella App Services.
 
 
 ## Setup & Technology Stack
@@ -156,7 +156,7 @@ You will see corresponding requests show up in the console output of the Edge Se
 2025-02-24T20:04:08.800-0500	(Listener) {RESTConnection#108}==> litecore::edge_server::RESTConnection from 127.0.0.1:61558 @0x600003d08650
 2025-02-24T20:04:08.800-0500	(Listener) Obj=/RESTConnection#108/ Handling GET /american234.AmericanAirlines.AA234/economyinventory 
 2025-02-24T20:04:09.078-0500	127.0.0.1:61558 GET /american234.AmericanAirlines.AA234/economyinventory -> 200   [278.044ms]
-2025-02-24T20:04:09.078-0500	(Listener) Obj=/RESTConnection#108/ End of socket connection from 127.0.0.1:61558 (Connectio
+2025-02-24T20:04:09.078-0500	(Listener) Obj=/RESTConnection#108/ End of socket connection from 127.0.0.1:61558 (Connection) 
 
 ```
 * You can also use any HTTP client to fetch a document and verify that its updated
