@@ -55,7 +55,7 @@ Although instructions are specified for Capella App Services, equivalent instruc
    ![](./public/assets/screenshots/edge-sample-connect.png)
 
 ### Couchbase Edge Server Setup
-The instructions below describe how to deploy and run the edge server on your local Mac machine. The equivalent instructions should apply to Linux-based machines as well.
+The instructions below describe how to deploy and run edge server on your local Mac machine. The equivalent instructions should apply to Linux-based machines as well.
 
 * Download Edge Server binary from the [downloads page](https://www.couchbase.com/downloads?family=edge-server).
 * Download the associated configuration .zip file named **"config-edge-server.zip"** from this [location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/config-edge-server.zip).
