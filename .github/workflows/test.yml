@@ -10,73 +10,40 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up test environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
         run: |
-          # Create a Dockerfile for the test environment
-          cat << EOF > Dockerfile.test
-          FROM node:latest
-          WORKDIR /app
+          npm ci
+          npm install cypress --save-dev
+          npx cypress verify
 
-          # Install SSL certificates handling tools
-          RUN apt-get update && apt-get install -y \
-              libgtk2.0-0 \
-              libgtk-3-0 \
-              libgbm-dev \
-              libnotify-dev \
-              libgconf-2-4 \
-              libnss3 \
-              libxss1 \
-              libasound2 \
-              libxtst6 \
-              xauth \
-              xvfb \
-              procps \
-              x11vnc \
-              x11-xkb-utils \
-              xfonts-100dpi \
-              xfonts-75dpi \
-              xfonts-scalable \
-              xvfb \
-              ca-certificates \
-              libnss3-tools
-
-          COPY . .
-          COPY test/raw/couchbase-edge-server /usr/local/bin/
-          COPY test/raw/config-tls-replication-sync.json /app/
-          COPY test/raw/resetdemo.sh /app/
-
-          # Set up certificates
-          RUN mkdir -p ~/.pki/nssdb
-          RUN certutil -d ~/.pki/nssdb -N --empty-password
-
-          # Start services and run tests
-          RUN chmod +x /usr/local/bin/couchbase-edge-server
-          RUN chmod +x /app/resetdemo.sh
-          RUN npm ci
-          RUN npm install cypress --save-dev
-          RUN npx cypress verify
-          EOF
-
-      - name: Build and run test container
+      - name: Copy test files
         run: |
-          docker build -t react-test-app -f Dockerfile.test .
-          docker run -d --name test-container \
-            -p 5173:5173 \
-            -p 60000:60000 \
-            react-test-app /bin/bash -c \
-            "couchbase-edge-server --verbose --create-cert CN=localhost certfile.pem keyfile && \
-             certutil -d ~/.pki/nssdb -A -n 'couchbase-edge' -t 'P,,' -i certfile.pem && \
-             sh resetdemo.sh & \
-             npm run dev & \
-             sleep 15 && \
-             npm run test && \
-             npx cypress run"
+          cp -r test/raw/* ./
+          chmod +x ./couchbase-edge-server
+          chmod +x ./resetdemo.sh
 
-          docker logs -f test-container
-          exit $(docker inspect test-container --format='{{.State.ExitCode}}')
+      - name: Start Edge Server
+        run: |
+          ./resetdemo.sh &
+          sleep 30  # Wait for edge server to start
+
+      - name: Start React App
+        run: |
+          npm run dev &
+          sleep 30  # Wait for React app to start
+
+      - name: Run Cypress Tests
+        run: |
+          npx cypress run &
+          npm run test
