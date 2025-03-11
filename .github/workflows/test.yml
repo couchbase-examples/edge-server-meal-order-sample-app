@@ -45,4 +45,5 @@ jobs:
 
       - name: Run Cypress Tests
         run: |
-          npx cypress run
+          npx cypress run &
+          npm run test
