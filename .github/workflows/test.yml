@@ -10,83 +10,39 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up test environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
         run: |
-          cat << EOF > Dockerfile.test
-          FROM node:latest
-          WORKDIR /app
+          npm ci
+          npm install cypress --save-dev
+          npx cypress verify
 
-          # Install SSL certificates handling tools
-          RUN apt-get update && apt-get install -y \
-              libgtk2.0-0 \
-              libgtk-3-0 \
-              libgbm-dev \
-              libnotify-dev \
-              libgconf-2-4 \
-              libnss3 \
-              libxss1 \
-              libasound2 \
-              libxtst6 \
-              xauth \
-              xvfb \
-              procps \
-              x11vnc \
-              x11-xkb-utils \
-              xfonts-100dpi \
-              xfonts-75dpi \
-              xfonts-scalable \
-              xvfb \
-              ca-certificates \
-              libnss3-tools
-
-          # Copy React application
-          COPY package*.json ./
-          COPY . .
-
-          # Copy test/raw contents to the working directory
-          COPY test/raw/* ./
-
-          # Install dependencies
-          RUN npm ci
-          RUN npm install cypress --save-dev
-          RUN npx cypress verify
-
-          # Make scripts executable
-          RUN chmod +x ./couchbase-edge-server
-          RUN chmod +x ./resetdemo.sh
-
-          # Create start script
-          RUN echo '#!/bin/bash\n\
-          # Start edge server\n\
-          ./resetdemo.sh &\n\
-          # Wait for edge server to start\n\
-          sleep 30\n\
-          # Start React app\n\
-          npm run dev &\n\
-          # Wait for React app to start\n\
-          sleep 30\n\
-          # Run Cypress tests\n\
-          npx cypress run' > start.sh
-
-          RUN chmod +x start.sh
-
-          EXPOSE 5173 60000
-          
-          CMD ["./start.sh"]
-          EOF
-
-      - name: Build and run test container
+      - name: Copy test files
         run: |
-          docker build -t react-test-app -f Dockerfile.test .
-          docker run --name test-container \
-            -p 5173:5173 \
-            -p 60000:60000 \
-            react-test-app
+          cp test/raw/* ./
+          chmod +x ./couchbase-edge-server
+          chmod +x ./resetdemo.sh
 
-          exit $(docker inspect test-container --format='{{.State.ExitCode}}')
+      - name: Start Edge Server
+        run: |
+          ./resetdemo.sh &
+          sleep 30  # Wait for edge server to start
+
+      - name: Start React App
+        run: |
+          npm run dev &
+          sleep 30  # Wait for React app to start
+
+      - name: Run Cypress Tests
+        run: |
+          npx cypress run
