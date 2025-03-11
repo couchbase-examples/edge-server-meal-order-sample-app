@@ -25,7 +25,7 @@
     },
     "databases": {
         "american234": {
-            "path": "./american234.cblite2", // second database
+            "path": "./american234.cblite2", // local database
             "enable_client_writes": true,
             "create": true, // database that is created if it does not exist
             "collections": { // the database is created with inventory scope and 5 collections
@@ -37,8 +37,8 @@
     },
     "replications": [
         {
-            // setup a bidirectional continous replication
-            "source": "wss://reaeawukmad1thac.apps.cloud.couchbase.com:5000/american234",
+            // setup a bidirectional continous replication with remote App services
+            "source": "wss://jknkmyqnmk77qbgm.apps.nonprod-project-avengers.com:5000/american234",
             "target": "american234",
             "bidirectional": true,
             "continuous": true,
