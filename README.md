@@ -1,6 +1,7 @@
 ## Introduction
 
 The sample React-based web application simulates an airline seat back application, that allows users in business and economy class to place their in-flight meal orders. The sample app leverages **Couchbase Edge Server** for data storage and processing at the edge, simulating a disconnected offline experience within an aircraft. The seatback web app accesses Edge Server via a RESTful interface. When there is Internet connectivity, the **Edge Server** syncs data with remote Capella App Services.
+> **Disclaimer**: "American Airlines" is used generally to refer to any airline and does not reflect a specific use case with American Airlines or any specific airliner.
 
 ## Setup & Technology Stack
 

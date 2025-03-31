@@ -16,7 +16,7 @@ describe('Navbar Component', () => {
 
     // Check if main elements are present
     expect(screen.getByLabelText('open drawer')).toBeInTheDocument();
-    expect(screen.getByText('American Airlines')).toBeInTheDocument();
+    expect(screen.getByText('America Airlines')).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
   });
@@ -67,7 +67,7 @@ describe('Navbar Component', () => {
   it('renders brand name with correct styling', () => {
     render(<Navbar onMenuClick={mockOnMenuClick} />);
 
-    const brandName = screen.getByText('American Airlines');
+    const brandName = screen.getByText('America Airlines');
     expect(brandName).toHaveClass('font-bold text-lg');
   });
 

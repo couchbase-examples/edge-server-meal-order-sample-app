@@ -29,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
 				<div className="flex items-center">
         <FlightTakeoffIcon className="mr-2" />
-        <span className="font-bold text-lg">American Airlines</span>
+        <span className="font-bold text-lg">America Airlines</span>
       </div>
       <ul className="ml-auto flex space-x-4">
         <li>Home</li>
