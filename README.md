@@ -61,10 +61,10 @@ The instructions below describe how to deploy and run edge server on your local 
 * Download Edge Server binary from the [downloads page](https://www.couchbase.com/downloads?family=edge-server).
 * Download the associated configuration .zip file named **"config-edge-server.zip"** from this [location](https://edge-server-tutorial-data.s3.us-east-2.amazonaws.com/config-edge-server.zip).
 * Unzip the contents of the package and place them in the same directory as your Edge Server executable. It will include the following:
-      - **usersfile**: This includes the list of web users who can access data from Edge Server. These are the credentials with which the web app authenticates with the server.
-         - [Optional] If you are interested in learning about how to generate your own users, run `./couchbase-edge-server --help` command to get more details.
-      - **certfile.pem** and **keyfile**: The edge server is configured to start up with an anonymous self-signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that. 
-         - [Optional] If you are interested in how you can generate your own anonymous self-signed certfile and keyfile, run the `./couchbase-edge-server --help` command to get more details. We'd recommend you follow the Edge Server documentation to generate your own certificate and private key.
+  * **usersfile**: This includes the list of web users who can access data from Edge Server. These are the credentials with which the web app authenticates with the server.
+     *  [Optional] If you are interested in learning about how to generate your own users, run `./couchbase-edge-server --help` command to get more details.
+  * **certfile.pem** and **keyfile**: The edge server is configured to start up with an anonymous self-signed certificate with a "common name" of localhost. This is the cert file and private key corresponding to that.
+     *  [Optional] If you are interested in how you can generate your own anonymous self-signed certfile and keyfile, run the `./couchbase-edge-server --help` command to get more details. We'd recommend you follow the Edge Server documentation to generate your own certificate and private key.
 * Open the config file named "config-tls-replication-sync.json" and edit the file as follows:
    - In the Replication section, replace these placeholders:
 
